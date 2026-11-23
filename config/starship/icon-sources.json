@@ -1,0 +1,1120 @@
+{
+  "fonts": "Starship Prompt Icons",
+  "icon_box_font_units": [
+    1200,
+    989
+  ],
+  "sources": {
+    "docker": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/docker/docker-original.svg",
+      "brand_color": "#019bc6",
+      "library": "devicon",
+      "codepoint": "0xf8019",
+      "cells": 2,
+      "sha256": "3fd830ea69431ed7a0b8d068cd5b34ad3f00a1a78195d50f13ff56713f2462e1"
+    },
+    "gradle": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/gradle/gradle-original.svg",
+      "brand_color": "#02303a",
+      "library": "devicon",
+      "dark_monochrome": true,
+      "codepoint": "0xf802d",
+      "cells": 2,
+      "sha256": "2caf72625f88b8062f38ee4bed0193f5fe910b6ec73951e239584d55c1bde55a"
+    },
+    "php": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/php/php-original.svg",
+      "brand_color": "#777bb3",
+      "library": "devicon",
+      "codepoint": "0xf8056",
+      "cells": 2,
+      "sha256": "f22619a19c99a123e4678d71826f65f223721a739631dff46de39827c9ee0633"
+    },
+    "spack": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/spack/spack-original.svg",
+      "brand_color": "#0F3A80",
+      "library": "devicon",
+      "codepoint": "0xf8069",
+      "cells": 2,
+      "sha256": "197d8e2ee8b84886258c882eda509959bcb7c9339afa453edb54e7135796d401"
+    },
+    "archlinux": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/archlinux/archlinux-original.svg",
+      "brand_color": "#1791cf",
+      "library": "devicon",
+      "codepoint": "0xf8009",
+      "cells": 2,
+      "sha256": "c9d6452bb0f1c88afecf697e3529f6f0be08af1f6f35f3eaa4867eb6f261ba5e"
+    },
+    "denojs": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/denojs/denojs-original.svg",
+      "brand_color": "#000000",
+      "library": "devicon",
+      "codepoint": "0xf8017",
+      "cells": 2,
+      "sha256": "db3153aac0433501766042d59daeb11560d4e4e93793ac397a9a4dc83b7439cb"
+    },
+    "java": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/java/java-original.svg",
+      "brand_color": "#EA2D2E",
+      "library": "devicon",
+      "codepoint": "0xf8036",
+      "cells": 2,
+      "sha256": "7582e518a9c02425f97155e5a3bd39d1a3a7d421b78caf9c8df7443dad3edc5d"
+    },
+    "mercurial": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/mercurial/mercurial-original.svg",
+      "brand_color": "#999",
+      "library": "devicon",
+      "codepoint": "0xf8043",
+      "cells": 2,
+      "sha256": "3cc92d3cfee4248c3bb447049ec152af5c03b104ccca7bd7fe91cf97577c917f"
+    },
+    "helm": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/helm/helm-original.svg",
+      "brand_color": "#0F1689",
+      "library": "devicon",
+      "dark_monochrome": true,
+      "codepoint": "0xf8032",
+      "cells": 2,
+      "sha256": "83efc74139c06f09c29cab6592fdad80c8ce9e5090fc1da3ba39d40686fb511b"
+    },
+    "zig": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/zig/zig-original.svg",
+      "brand_color": "#f7a41d",
+      "library": "devicon",
+      "codepoint": "0xf8074",
+      "cells": 2,
+      "sha256": "f4af51779b6d6f6a0de1172f11cb19803b42b6c4a02eb6e43ed97d2dd640323f"
+    },
+    "ruby": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/ruby/ruby-original.svg",
+      "brand_color": "#d91404",
+      "library": "devicon",
+      "codepoint": "0xf8063",
+      "cells": 2,
+      "sha256": "74ead50b8f0f31e1b34618088bc0b0e16c04f1d4539039ef9358717d8505a63c"
+    },
+    "c": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/c/c-original.svg",
+      "brand_color": "#a9bacd",
+      "library": "devicon",
+      "codepoint": "0xf800f",
+      "cells": 2,
+      "sha256": "8cce48da91084256f15653e02bfd7046ccb34489d030cb1aa34dee766daad6b7"
+    },
+    "dart": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/dart/dart-original.svg",
+      "brand_color": "#00A8E1",
+      "library": "devicon",
+      "codepoint": "0xf8015",
+      "cells": 2,
+      "sha256": "8dec3d6f6d92d5c8db294baf7ea89cbad5c3dd0f7fde5ca972ffc6cebf9b2d40"
+    },
+    "haskell": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/haskell/haskell-original.svg",
+      "brand_color": "#5E5185",
+      "library": "devicon",
+      "codepoint": "0xf8030",
+      "cells": 2,
+      "sha256": "70aee9daacf630e53b54c3e3049d636e69c006d6eb5669c535a221d4fc3f9871"
+    },
+    "linuxmint": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/linuxmint/linuxmint-original.svg",
+      "brand_color": "#69b53f",
+      "library": "devicon",
+      "codepoint": "0xf803c",
+      "cells": 2,
+      "sha256": "789960776b9a7b16e6af8cdbe3a2263a2c32d04a6227bd20c49bea9662a12459"
+    },
+    "anaconda": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/anaconda/anaconda-original.svg",
+      "brand_color": "#3eb049",
+      "library": "devicon",
+      "codepoint": "0xf8006",
+      "cells": 2,
+      "sha256": "070557b846ac5ca5404bc431a1e0be937c21f8733232b8971b5ec8d69ec7594b"
+    },
+    "gentoo": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/gentoo/gentoo-original.svg",
+      "brand_color": "#9991d9",
+      "library": "devicon",
+      "codepoint": "0xf8028",
+      "cells": 2,
+      "sha256": "dd5f3c961cb27af448e5928a8c294b86dfae480b60fa759dd40c2168135dad8c"
+    },
+    "nodejs": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original.svg",
+      "brand_color": "#5fa04e",
+      "library": "devicon",
+      "codepoint": "0xf804c",
+      "cells": 2,
+      "sha256": "3218687c5ea24a4d4c0a33dc5c287da38c33a72dcfe9382469d7ce4e0bf661fb"
+    },
+    "cachyos": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/cachyos/cachyos-original.svg",
+      "brand_color": "#00ccff",
+      "library": "devicon",
+      "codepoint": "0xf8010",
+      "cells": 2,
+      "sha256": "69ab5793bbaedf3a676d57a456c3268308a285eb5c9bd0b10478a1a8c92163a7"
+    },
+    "googlecloud": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/googlecloud/googlecloud-original.svg",
+      "brand_color": "#557ebf",
+      "library": "devicon",
+      "codepoint": "0xf802c",
+      "cells": 2,
+      "sha256": "1615b3e53228faa14378f1abb2b78e5f6c3f0ec562bc37db3efde885714e6c2f"
+    },
+    "cmake": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/cmake/cmake-original.svg",
+      "brand_color": "#0e8a16",
+      "library": "devicon",
+      "codepoint": "0xf8012",
+      "cells": 2,
+      "sha256": "c3a8a666d1ceaa0ab92e8d267c3e03e56a62a73c84a6722c92b23e79886f99b4"
+    },
+    "elixir": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/elixir/elixir-original.svg",
+      "brand_color": "#8847B9",
+      "library": "devicon",
+      "codepoint": "0xf801d",
+      "cells": 2,
+      "sha256": "8710ad49e53ec4a2a4efc82381cc8c8bff5c630e4ad82801d186759228d867ab"
+    },
+    "redhat": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/redhat/redhat-original.svg",
+      "brand_color": "#e93442",
+      "library": "devicon",
+      "codepoint": "0xf8060",
+      "cells": 2,
+      "sha256": "c7ec409610e7c222191166a5fe7bd52b57e6d057cb8e51ee44d12a2743401e21"
+    },
+    "maven": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/maven/maven-original.svg",
+      "brand_color": "#e97826",
+      "library": "devicon",
+      "codepoint": "0xf8042",
+      "cells": 2,
+      "sha256": "eb546e1cfd7c0df769193160d2a03e1ec5243ae68eef48c70934a24ece6bbe31"
+    },
+    "terraform": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/terraform/terraform-original.svg",
+      "brand_color": "#5c4ee5",
+      "library": "devicon",
+      "codepoint": "0xf806c",
+      "cells": 2,
+      "sha256": "0be6427291ae47f057b75f9010dffd6f58a40f0c83c43606ff68851cef1621dc"
+    },
+    "kotlin": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/kotlin/kotlin-original.svg",
+      "brand_color": "#c711e1",
+      "library": "devicon",
+      "codepoint": "0xf8039",
+      "cells": 2,
+      "sha256": "5053c2e1288582d1ac2cfc1e807eabb7f6059b1aa2f7d04e5cf00063682a2cbe"
+    },
+    "vagrant": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/vagrant/vagrant-original.svg",
+      "brand_color": "#127eff",
+      "library": "devicon",
+      "codepoint": "0xf806f",
+      "cells": 2,
+      "sha256": "daddd8af47a144d7ebda068664b02b1c2f09fcdef261d3d002824634160f7f4f"
+    },
+    "julia": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/julia/julia-original.svg",
+      "brand_color": "#28a745",
+      "library": "devicon",
+      "codepoint": "0xf8037",
+      "cells": 2,
+      "sha256": "7738541f247986f495c154b385098b8a4db9b22963912050a81d4055e2437085"
+    },
+    "windows11": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/windows11/windows11-original.svg",
+      "brand_color": "#0078d4",
+      "library": "devicon",
+      "codepoint": "0xf8072",
+      "cells": 2,
+      "sha256": "11ac9b1e84c8c36c21629d03f26ce699b7d2e56bf702ea2e8eb2637cd2271c56"
+    },
+    "pulumi": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/pulumi/pulumi-original.svg",
+      "brand_color": "#f6bf29",
+      "library": "devicon",
+      "codepoint": "0xf805a",
+      "cells": 2,
+      "sha256": "19f2e8918f9cec09a4bee042426bf7b9b910d232d7482574a2b6731581fbc507"
+    },
+    "azure": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/azure/azure-original.svg",
+      "brand_color": "#0089D6",
+      "library": "devicon",
+      "codepoint": "0xf800b",
+      "cells": 2,
+      "sha256": "7923db83e3f9755bd412241a683fa996fb7a9d0259b5084de449e6be92f7ca20"
+    },
+    "gleam": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/gleam/gleam-original.svg",
+      "brand_color": "#ffaff3",
+      "library": "devicon",
+      "codepoint": "0xf802a",
+      "cells": 2,
+      "sha256": "93cbec0b378af256fde2524244ca5ef40f3bb7c650d1992844d0e74a26b74e0f"
+    },
+    "elm": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/elm/elm-original.svg",
+      "brand_color": "#34495E",
+      "library": "devicon",
+      "codepoint": "0xf801e",
+      "cells": 2,
+      "sha256": "8ad7eb343a9764e62f073b8f8c8e3d7b003688897ccbd69429bfe67e9efef456"
+    },
+    "solidity": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/solidity/solidity-original.svg",
+      "brand_color": "#383838",
+      "library": "devicon",
+      "codepoint": "0xf8067",
+      "cells": 2,
+      "sha256": "d17a000e2a4d29fe181cca14fd5ca24bbe3a529f05af0e9a4ee1b8ad5966d959"
+    },
+    "fedora": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/fedora/fedora-original.svg",
+      "brand_color": "#294172",
+      "library": "devicon",
+      "codepoint": "0xf8022",
+      "cells": 2,
+      "sha256": "a82984dbe775e1c973ca5d0e78c908ed0730ee6c4deab903b630721644d109d6"
+    },
+    "purescript": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/purescript/purescript-original.svg",
+      "brand_color": "#14161a",
+      "library": "devicon",
+      "dark_monochrome": true,
+      "codepoint": "0xf805b",
+      "cells": 2,
+      "sha256": "5b5d313c3bc7a42a84cb3b02d3760fccb40cd42783e05c64c54c45b17f0054df"
+    },
+    "perl": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/perl/perl-original.svg",
+      "brand_color": "#212177",
+      "library": "devicon",
+      "codepoint": "0xf8055",
+      "cells": 2,
+      "sha256": "f6cd4249349b4681ba273699aa31cf4df43f8c63dafdc640803b91cf239b8c8b"
+    },
+    "crystal": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/crystal/crystal-original.svg",
+      "brand_color": "#000",
+      "library": "devicon",
+      "codepoint": "0xf8014",
+      "cells": 2,
+      "sha256": "0a3d00c3b8ad57574224649e21f50a17bb0e359d2d273c4a49f7c5c2c50b45ad"
+    },
+    "rust": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/rust/rust-original.svg",
+      "brand_color": "#000",
+      "library": "devicon",
+      "codepoint": "0xf8064",
+      "cells": 2,
+      "sha256": "16c6c6a98e990944fc5e1cc64cc8fc7b8be3a662ec4ee7951b7995d2e52f5e12"
+    },
+    "linux": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg",
+      "brand_color": "#000000",
+      "library": "devicon",
+      "codepoint": "0xf803b",
+      "cells": 2,
+      "sha256": "cf50ae4a263c6142963fad3561f7cb0311d0d41cc6189eadfb34f81a8a36acb0"
+    },
+    "amazonwebservices": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/amazonwebservices/amazonwebservices-original.svg",
+      "brand_color": "#f90",
+      "library": "devicon",
+      "dark_variant_colors": {
+        "#252f3e": "#ffffff"
+      },
+      "codepoint": "0xf8005",
+      "cells": 2,
+      "sha256": "5b4d8371d79a5c0d3a27ea4e929f772e68d47f7d267496bf9211d5f60fcf8084"
+    },
+    "almalinux": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/almalinux/almalinux-original.svg",
+      "brand_color": "#ffffff",
+      "library": "devicon",
+      "codepoint": "0xf8001",
+      "cells": 2,
+      "sha256": "bc82554bde812764d0c9a919ed57d1848111cbba48a65d49fb5aa4b82d82f99b"
+    },
+    "rockylinux": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/rockylinux/rockylinux-original.svg",
+      "brand_color": "#10b982",
+      "library": "devicon",
+      "codepoint": "0xf8062",
+      "cells": 2,
+      "sha256": "748f3c1ab46ef03a01b9f315fee680e660366e4d7eaec4dc54c215187b208e13"
+    },
+    "android": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/android/android-original.svg",
+      "brand_color": "#A4C439",
+      "library": "devicon",
+      "codepoint": "0xf8007",
+      "cells": 2,
+      "sha256": "d6c8aa6c2b94c90ff02c1b7e89f9cf863d54db59b459b8b287c19bfb8e664c41"
+    },
+    "kubernetes": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/kubernetes/kubernetes-original.svg",
+      "brand_color": "#326ce5",
+      "library": "devicon",
+      "codepoint": "0xf803a",
+      "cells": 2,
+      "sha256": "fb31e4163238978201cfde0601728ee5168b74e476c32c37739bed626fa281ae"
+    },
+    "go": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/go/go-original.svg",
+      "brand_color": "#00acd7",
+      "library": "devicon",
+      "codepoint": "0xf802b",
+      "cells": 2,
+      "sha256": "2d4558b96d3ec71d0d922a62668cb2ea5a5d83ed7d4caf6b0479b3266f795a2f"
+    },
+    "erlang": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/erlang/erlang-original.svg",
+      "brand_color": "#a90533",
+      "library": "devicon",
+      "codepoint": "0xf8021",
+      "cells": 2,
+      "sha256": "b605010afdc6ac75a2c53ebbf079bbcc47948133fcb1765f8b5eec8494a6d9c0"
+    },
+    "scala": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/scala/scala-original.svg",
+      "brand_color": "#de3423",
+      "library": "devicon",
+      "codepoint": "0xf8065",
+      "cells": 2,
+      "sha256": "2565b6286bf30ab28c7d6a988ab7a76c5ce28182b80634e2a2ae21e29b4ad7b9"
+    },
+    "centos": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/centos/centos-original.svg",
+      "brand_color": "#932178",
+      "library": "devicon",
+      "codepoint": "0xf8011",
+      "cells": 2,
+      "sha256": "b54c6ad8e100208fd0ade26633abd996c9d979b19c13c1b91caf48b49ed8c8d2"
+    },
+    "artixlinux": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/artixlinux/artixlinux-original.svg",
+      "brand_color": "#10a0cc",
+      "library": "devicon",
+      "codepoint": "0xf800a",
+      "cells": 2,
+      "sha256": "5f52c1afd53c8f5f96a8c0fbb09c10520639b7c9edb6a7ca2d76a7237c9e80c1"
+    },
+    "nats": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/nats/nats-original.svg",
+      "brand_color": "#27aae1",
+      "library": "devicon",
+      "codepoint": "0xf8047",
+      "cells": 2,
+      "sha256": "bc610b84ac6516797bd2bce4a2ae14265197b1adab6110222f70ee6a0ee93fa6"
+    },
+    "odin": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/odin/odin-original.svg",
+      "brand_color": "#FFFFFF",
+      "library": "devicon",
+      "codepoint": "0xf804e",
+      "cells": 2,
+      "sha256": "43fdb14bbdb10d40157b31b61d8362d9dc127c4fb82c193f37c66607acc9ed32"
+    },
+    "bun": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/bun/bun-original.svg",
+      "brand_color": "#FBF0DF",
+      "library": "devicon",
+      "codepoint": "0xf800e",
+      "cells": 2,
+      "sha256": "54664655dec93da013d1fe8f8e1bf3311054708a17b445fdde319e0d7011f93c"
+    },
+    "vlang": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/vlang/vlang-original.svg",
+      "brand_color": "#5d87bf",
+      "library": "devicon",
+      "codepoint": "0xf8070",
+      "cells": 2,
+      "sha256": "113fe369d9e2abb4beb2afc210f31f2430667a55e46c7faa2fd3d6a8232f97a1"
+    },
+    "lua": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/lua/lua-original.svg",
+      "brand_color": "#000080",
+      "library": "devicon",
+      "codepoint": "0xf803d",
+      "cells": 2,
+      "sha256": "7bd82efe74ca5dc3741b8cdcf6c373c96123c638e79c42d0806b15c47e2fccb8"
+    },
+    "haxe": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/haxe/haxe-original.svg",
+      "brand_color": "#EA8220",
+      "library": "devicon",
+      "codepoint": "0xf8031",
+      "cells": 2,
+      "sha256": "820f1e5dc6954a9d05c4f45383e3e1041ec47018a52d639362b5866c4f55d9de"
+    },
+    "swift": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/swift/swift-original.svg",
+      "brand_color": "#F05138",
+      "library": "devicon",
+      "codepoint": "0xf806b",
+      "cells": 2,
+      "sha256": "46b6e4abd3ab12c589b8e276295f9439e2869bc4788d918efbc6e76147e8a06e"
+    },
+    "git": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/git/git-original.svg",
+      "brand_color": "#f34f29",
+      "library": "devicon",
+      "codepoint": "0xf8029",
+      "cells": 2,
+      "sha256": "717a57ea97bf7e86de721dab3e68afac66332a10676d5c9abce4ae6a5a9c9983"
+    },
+    "nim": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/nim/nim-original.svg",
+      "brand_color": "#ffe953",
+      "library": "devicon",
+      "codepoint": "0xf8049",
+      "cells": 2,
+      "sha256": "c878049032885e8c221aed0d8af204931d312d3088b884474ce7786eb8a180bb"
+    },
+    "nixos": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/nixos/nixos-original.svg",
+      "brand_color": "#5277C3",
+      "library": "devicon",
+      "codepoint": "0xf804a",
+      "cells": 2,
+      "sha256": "bd6a5dc1211d3356964b79a0fa318d22753576a2f64a309930ee1fa259067cde"
+    },
+    "r": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/r/r-original.svg",
+      "brand_color": "#1f65b7",
+      "library": "devicon",
+      "codepoint": "0xf805c",
+      "cells": 2,
+      "sha256": "9d135e1a56f58f89203afc9253f1db91901e19522f92dfc10575e3312336e61b"
+    },
+    "debian": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/debian/debian-original.svg",
+      "brand_color": "#A80030",
+      "library": "devicon",
+      "codepoint": "0xf8016",
+      "cells": 2,
+      "sha256": "09b14c9813a322b58b11aa5390fb1a2b4e9bfd02868321482f1a19534a66ec54"
+    },
+    "opensuse": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/opensuse/opensuse-original.svg",
+      "brand_color": "#73ba25",
+      "library": "devicon",
+      "codepoint": "0xf8054",
+      "cells": 2,
+      "sha256": "f23084ff594f24042a64d096f255e4ce865695c713c23ea64ff9d4454cc0dd9c"
+    },
+    "openstack": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/openstack/openstack-original.svg",
+      "brand_color": "#ed1944",
+      "library": "devicon",
+      "codepoint": "0xf8053",
+      "cells": 2,
+      "sha256": "19d8a58082b2601c9e0a7a6e3965f62240a6955c7d83c6a7da6ce97e2b6bca9b"
+    },
+    "kalilinux": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/kalilinux/kalilinux-original.svg",
+      "brand_color": "#2777ff",
+      "library": "devicon",
+      "codepoint": "0xf8038",
+      "cells": 2,
+      "sha256": "ba8eb6ae69a478c8f9bb0d8e2f2a1e1edfe37d29c42f68b737e76d8417c27237"
+    },
+    "cplusplus": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/cplusplus/cplusplus-original.svg",
+      "brand_color": "#004482",
+      "library": "devicon",
+      "codepoint": "0xf8013",
+      "cells": 2,
+      "sha256": "7ff8253551235e3a6b002a7c2bd6e3190d85113a64fcb40f2254473caeb025d4"
+    },
+    "fortran": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/fortran/fortran-original.svg",
+      "brand_color": "#734f96",
+      "library": "devicon",
+      "codepoint": "0xf8024",
+      "cells": 2,
+      "sha256": "9d70fbcc51bb16ed0dda5d0cc59e976c0b8fbbd156c3551fb60020ff243172ea"
+    },
+    "ocaml": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/ocaml/ocaml-original.svg",
+      "brand_color": "#F18803",
+      "library": "devicon",
+      "codepoint": "0xf804d",
+      "cells": 2,
+      "sha256": "5eff21a93a1cd31f981b6e4816bcb7fc4273e909c389585290d9a1fa097d7d24"
+    },
+    "suse": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/suse.svg",
+      "official_website": "https://www.suse.com/",
+      "library": "svglogos",
+      "codepoint": "0xf806a",
+      "cells": 2,
+      "sha256": "ce72615cf29c9614656dbf14208a9d437732110663aaa66a95be89b1453acb6d"
+    },
+    "macos": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/macOS-icon.svg",
+      "official_website": "https://www.apple.com/macos/",
+      "library": "svglogos",
+      "codepoint": "0xf803f",
+      "cells": 2,
+      "sha256": "37fb2012fba5665d5f645fef96cfa0fe2769c9a115a9723dcfe671d2cb13c9d0"
+    },
+    "red-lang": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/red-lang.svg",
+      "official_website": "https://www.red-lang.org",
+      "library": "svglogos",
+      "codepoint": "0xf805f",
+      "cells": 2,
+      "sha256": "f93df7376bfd679d3ef779b9421a4060f66744301f23ae40d6d620aefdac1046"
+    },
+    "aix": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/aix.svg",
+      "official_website": "https://www.ibm.com/it-infrastructure/power/os/aix",
+      "library": "svglogos",
+      "codepoint": "0xf8000",
+      "cells": 2,
+      "sha256": "406b8758976dc85bc799eeabd41a488213ad1c9c0471cae9b390a267d35012f5"
+    },
+    "elementary": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/elementary.svg",
+      "official_website": "https://elementary.io/",
+      "library": "svglogos",
+      "dark_monochrome": true,
+      "codepoint": "0xf801c",
+      "cells": 2,
+      "sha256": "9a77683fbab74509708105fca795d4247a15f5327b1282f758a3a1a5132074a9"
+    },
+    "zorin-os": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/zorin-os.svg",
+      "official_website": "https://zorinos.com/",
+      "library": "svglogos",
+      "codepoint": "0xf8075",
+      "cells": 2,
+      "sha256": "77c5ddc3fc072b54fb19fbc4676d29afae31da7b76b05749362cda450f693395"
+    },
+    "ios": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/ios.svg",
+      "official_website": "https://www.apple.com/ios/",
+      "library": "svglogos",
+      "codepoint": "0xf8035",
+      "cells": 2,
+      "sha256": "d2349676520196724ac0005a19acbf0d104c8955964af0420aae6b411a8c6a89"
+    },
+    "void": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/void.svg",
+      "official_website": "https://voidlinux.org/",
+      "library": "svglogos",
+      "codepoint": "0xf8071",
+      "cells": 2,
+      "sha256": "ce3ea00fea69112b671f3ec450152825d77260fe2ec43c286c0aef363c811bc0"
+    },
+    "freebsd": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/freebsd.svg",
+      "official_website": "https://www.freebsd.org/",
+      "library": "svglogos",
+      "codepoint": "0xf8026",
+      "cells": 2,
+      "sha256": "9fd2a5dd10efde521c50377c9a089cb167adc33d0e7297e11070c7cec9324155"
+    },
+    "manjaro": {
+      "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/manjaro.svg",
+      "official_website": "https://manjaro.org/",
+      "library": "svglogos",
+      "codepoint": "0xf8040",
+      "cells": 2,
+      "sha256": "bd5362233aef5c4039a4ead9470868ae54e51bf48bfc361657d3a30310ef96f3"
+    },
+    "fossilscm": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/fossilscm.svg",
+      "brand_color": "#548294",
+      "official_source": "https://fossil-scm.org",
+      "library": "simple-icons",
+      "codepoint": "0xf8025",
+      "cells": 2,
+      "sha256": "1b9330828757e9d716fe4d52b9362203ccd0230517975435747fd70e23cc9345"
+    },
+    "typst": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/typst.svg",
+      "brand_color": "#239DAD",
+      "official_source": "https://typst.app",
+      "library": "simple-icons",
+      "codepoint": "0xf806d",
+      "cells": 2,
+      "sha256": "508ce221d875bd4936576578c3035dd7d697efa97efcea80881b7699b3cafe0f"
+    },
+    "alpinelinux": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/alpinelinux.svg",
+      "brand_color": "#0D597F",
+      "official_source": "https://alpinelinux.org",
+      "library": "simple-icons",
+      "codepoint": "0xf8002",
+      "cells": 2,
+      "sha256": "d37d0a7873c65174308d63929f09ab93c3aaa7f5c5df79cdec4be532e015fc98"
+    },
+    "endeavouros": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/endeavouros.svg",
+      "brand_color": "#7F7FFF",
+      "official_source": "https://github.com/endeavouros-team/endeavouros-theming/blob/135f642c980ed8d8fc212783eb478f96226f6c72/endeavouros-logo-text.svg",
+      "library": "simple-icons",
+      "codepoint": "0xf8020",
+      "cells": 2,
+      "sha256": "f3963917a83a19829333cecbc9b237a1e7b3950b5dfb92ec8d27e2faf218a8d2"
+    },
+    "garudalinux": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/garudalinux.svg",
+      "brand_color": "#8839EF",
+      "official_source": "https://gitlab.com/garuda-linux/themes-and-settings/artwork/garuda-icons/-/blob/aab26625fe01479ebc3a252103fca723baca9e88/usr/share/icons/garuda/distributor-logo-garuda-outline.svg",
+      "library": "simple-icons",
+      "codepoint": "0xf8027",
+      "cells": 2,
+      "sha256": "b234f6db58085e44d241a816e307cd99ec77c20c55a3044fc957c1a02ba02229"
+    },
+    "netbsd": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/netbsd.svg",
+      "brand_color": "#FF6600",
+      "official_source": "https://www.netbsd.org",
+      "library": "simple-icons",
+      "codepoint": "0xf8048",
+      "cells": 2,
+      "sha256": "17049a7a40524607e86c04d77036ff976f897c4be6cef25df2fb56aa7ebd9ee1"
+    },
+    "nobaralinux": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/nobaralinux.svg",
+      "brand_color": "#000000",
+      "official_source": "https://wiki.nobaraproject.org",
+      "library": "simple-icons",
+      "codepoint": "0xf804b",
+      "cells": 2,
+      "sha256": "768c9419d617571d0f326a5027af9289dba2d324da56f0c0fdd292226fdf91f8"
+    },
+    "openbsd": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/openbsd.svg",
+      "brand_color": "#F2CA30",
+      "official_source": "https://en.wikipedia.org/wiki/OpenBSD",
+      "library": "simple-icons",
+      "codepoint": "0xf8050",
+      "cells": 2,
+      "sha256": "f24cc50bc8150a48a06022b70cb949f2fee747972068bafc4c26c9c2fcef3e51"
+    },
+    "popos": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/popos.svg",
+      "brand_color": "#48B9C7",
+      "official_source": "https://github.com/system76/brand/blob/7a31740b54f929b62a165baa61dfb0b5164261e8/Pop_OS%20branding/Pop_icon.svg",
+      "library": "simple-icons",
+      "codepoint": "0xf8059",
+      "cells": 2,
+      "sha256": "b74950a4c3b1dd2300dc1fad68cfaf45843826408dd328d06497b42379bade1e"
+    },
+    "redox": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/redox.svg",
+      "brand_color": "#000000",
+      "official_source": "https://github.com/redox-os/assets/blob/4935a777cd7aa44323d3c263b1e0bb4ae864a027/logos/redox/vectorized_logo.svg",
+      "library": "simple-icons",
+      "codepoint": "0xf8061",
+      "cells": 2,
+      "sha256": "1e47d8e6cc4c20f1418d65b7b1129a5d457bb962c5bc94b754436acd60a59961"
+    },
+    "solus": {
+      "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/solus.svg",
+      "brand_color": "#5294E2",
+      "official_source": "https://getsol.us/branding/",
+      "library": "simple-icons",
+      "codepoint": "0xf8068",
+      "cells": 2,
+      "sha256": "c7fd902d2bf53f2330d015fe8f51912b396f2f1106085c5154d5079dd1b4a59b"
+    },
+    "buf": {
+      "url": "https://raw.githubusercontent.com/bufbuild/buf/main/.github/buf-logo.svg",
+      "official_source": "https://raw.githubusercontent.com/bufbuild/buf/main/.github/buf-logo.svg",
+      "library": "official",
+      "codepoint": "0xf800d",
+      "cells": 2,
+      "sha256": "1909027305f974fe55cf8ba75768f9a0bbb274ec6a7b0f7d0161ffed6b89f578"
+    },
+    "meson": {
+      "url": "https://raw.githubusercontent.com/mesonbuild/meson/master/graphics/meson_logo.svg",
+      "official_source": "https://raw.githubusercontent.com/mesonbuild/meson/master/graphics/meson_logo.svg",
+      "library": "official",
+      "codepoint": "0xf8044",
+      "cells": 2,
+      "sha256": "27c46f25b500f9e461961f502dd0f48ecc266629fc7c27d4156cff8081628a9d"
+    },
+    "opa": {
+      "url": "https://raw.githubusercontent.com/cncf/artwork/main/projects/open-policy-agent/icon/color/opa-icon-color.svg",
+      "official_source": "https://raw.githubusercontent.com/cncf/artwork/main/projects/open-policy-agent/icon/color/opa-icon-color.svg",
+      "library": "official",
+      "codepoint": "0xf804f",
+      "cells": 2,
+      "sha256": "41433b33d8b0c021a551cc92a9e49f2766215c16e26b61c71fff974c59f6074d"
+    },
+    "raspberrypi": {
+      "url": "https://raw.githubusercontent.com/devicons/devicon/master/icons/raspberrypi/raspberrypi-original.svg",
+      "brand_color": "#c51850",
+      "library": "devicon",
+      "codepoint": "0xf805e",
+      "cells": 2,
+      "sha256": "5f6989c03465d053f7bffa570b64061a8ff293fce687eb87140ce76b399068fa"
+    },
+    "direnv": {
+      "url": "https://raw.githubusercontent.com/direnv/direnv-logo/HEAD/direnv-logo.svg",
+      "official_source": "https://raw.githubusercontent.com/direnv/direnv-logo/HEAD/direnv-logo.svg",
+      "library": "official",
+      "codepoint": "0xf8018",
+      "cells": 2,
+      "sha256": "b4b94c6b03a36234fc0ea27bc7fc1a649ab09c2ae32f66c3c55b83b64288ba0e"
+    },
+    "fennel": {
+      "url": "https://fennel-lang.org/logo.svg",
+      "official_source": "https://fennel-lang.org/logo.svg",
+      "library": "official",
+      "codepoint": "0xf8023",
+      "cells": 2,
+      "sha256": "a4bdcf7eaa16fad0e618e70f8083b729e6b3f02856812e957e7290da02a1641a"
+    },
+    "pixi": {
+      "url": "https://raw.githubusercontent.com/prefix-dev/pixi/HEAD/docs/assets/pixi-logo.svg",
+      "official_source": "https://raw.githubusercontent.com/prefix-dev/pixi/HEAD/docs/assets/pixi-logo.svg",
+      "library": "official",
+      "codepoint": "0xf8058",
+      "cells": 2,
+      "sha256": "df29faeed127a19abacb68fdb8b89d4e0d133d7b7ed945afb1a6cf05c4966aa0"
+    },
+    "mojo": {
+      "url": "https://raw.githubusercontent.com/modular/modular/HEAD/Mojo/utils/jupyter-mojo/kernel/logo.svg",
+      "official_source": "https://raw.githubusercontent.com/modular/modular/HEAD/Mojo/utils/jupyter-mojo/kernel/logo.svg",
+      "library": "official",
+      "codepoint": "0xf8046",
+      "cells": 2,
+      "sha256": "83d32cc2d2fa93902bc0ca28bfdcea8eace04649498b62b789744e4cf211a90a"
+    },
+    "singularity": {
+      "url": "https://raw.githubusercontent.com/sylabs/singularity/HEAD/docs/logos/singularity_v3.svg",
+      "official_source": "https://raw.githubusercontent.com/sylabs/singularity/HEAD/docs/logos/singularity_v3.svg",
+      "library": "official",
+      "codepoint": "0xf8066",
+      "cells": 2,
+      "sha256": "cc5a7e1fef6cb2feab77eb3d60c4a8249fdff630d9439db6115f360d4b9d76f3"
+    },
+    "guix": {
+      "url": "https://guix.gnu.org/themes/initial/img/icon.svg",
+      "official_source": "https://guix.gnu.org/themes/initial/img/icon.svg",
+      "library": "official",
+      "codepoint": "0xf802e",
+      "cells": 2,
+      "sha256": "8ffb8fd02015e3e453e18dc29d06a69d47810d22bafafc9b8b2354dd052c3df8"
+    },
+    "raku": {
+      "url": "https://raw.githubusercontent.com/Raku/mu/HEAD/misc/camelia.svg",
+      "official_source": "https://raw.githubusercontent.com/Raku/mu/HEAD/misc/camelia.svg",
+      "library": "official",
+      "codepoint": "0xf805d",
+      "cells": 2,
+      "sha256": "1841700cbf9bd745c70f69d609b62755be373e05004a2e6e7bca77496446183e"
+    },
+    "dotnet-official": {
+      "url": "https://raw.githubusercontent.com/dotnet/brand/c7d0f51b8ec59531332d05fb27a5b758a7a3d689/logo/dotnet-logo.svg",
+      "official_source": "https://raw.githubusercontent.com/dotnet/brand/c7d0f51b8ec59531332d05fb27a5b758a7a3d689/logo/dotnet-logo.svg",
+      "library": "official",
+      "codepoint": "0xf801a",
+      "cells": 2,
+      "sha256": "f222062c4f59b7864163bd54d24fafc40f1e2f2513672e50bc08e5025d73e4e5"
+    },
+    "altlinux": {
+      "url": "https://www.altlinux.org/favicon.svg",
+      "official_source": "https://www.altlinux.org/favicon.svg",
+      "library": "official",
+      "codepoint": "0xf8003",
+      "cells": 2,
+      "sha256": "3348114a0e9ff4efff83dfbb2d6c7b61be40ea23c5f873207269ada9c8d7edd7"
+    },
+    "aosc": {
+      "url": "https://aosc.io/distros/aosc-os.svg",
+      "official_source": "https://aosc.io/distros/aosc-os.svg",
+      "library": "official",
+      "codepoint": "0xf8008",
+      "cells": 2,
+      "sha256": "ae2617ee21a03160f18194d59c93009091b5836936181583c64d78daa0346fe9"
+    },
+    "bluefin": {
+      "url": "https://projectbluefin.io/favicons/favicon.svg",
+      "official_source": "https://projectbluefin.io/favicons/favicon.svg",
+      "library": "official",
+      "codepoint": "0xf800c",
+      "cells": 2,
+      "sha256": "b5192e6f28e17f91b5936ccb2e8a740a2e6beb0c9d89a4acae802e00351b1f5f"
+    },
+    "emscripten": {
+      "url": "https://emscripten.org/_static/emscripten_logo_full.svg",
+      "official_source": "https://emscripten.org/_static/emscripten_logo_full.svg",
+      "library": "official",
+      "codepoint": "0xf801f",
+      "cells": 2,
+      "sha256": "bd44b4001978215b019089c58c0c7d00cab64572111e860666d36283ebcf2cb5"
+    },
+    "illumos": {
+      "url": "https://illumos.org/n/images/logo2.svg",
+      "official_source": "https://illumos.org/n/images/logo2.svg",
+      "library": "official",
+      "codepoint": "0xf8033",
+      "cells": 2,
+      "sha256": "8f353ac566802fb0feed34b735b3d6a9f9e49f52f387dbdfd87d98fc923e23ad"
+    },
+    "midnightbsd": {
+      "url": "https://www.midnightbsd.org/favicon.svg",
+      "official_source": "https://www.midnightbsd.org/favicon.svg",
+      "library": "official",
+      "codepoint": "0xf8045",
+      "cells": 2,
+      "sha256": "95d74777665ea7f9b40ab27d377a111acea4d5ca087c1e0f2040d271ccc04bd4"
+    },
+    "openeuler": {
+      "url": "https://www.openeuler.org/assets/logo.XeUCiAZu.svg",
+      "official_source": "https://www.openeuler.org/assets/logo.XeUCiAZu.svg",
+      "library": "official",
+      "codepoint": "0xf8052",
+      "cells": 2,
+      "sha256": "068188de9e2f6f26583733879025fdf502619cbbb4fcc551fc4afd42a3026927"
+    },
+    "ultramarine": {
+      "url": "https://ultramarine-linux.org",
+      "official_source": "https://ultramarine-linux.org",
+      "library": "official-inline",
+      "codepoint": "0xf806e",
+      "cells": 2,
+      "sha256": "def64572047b6d49604c83fb5e1f7c3767e81f882e2d37213e779667037905b4"
+    },
+    "xmake": {
+      "url": "https://raw.githubusercontent.com/xmake-io/xmake-docs/HEAD/docs/public/assets/img/logo.svg",
+      "official_source": "https://raw.githubusercontent.com/xmake-io/xmake-docs/HEAD/docs/public/assets/img/logo.svg",
+      "library": "official",
+      "raster": false,
+      "codepoint": "0xf8073",
+      "cells": 2,
+      "sha256": "4431341f1e6bf1ad29cb12817b899706bdb003049bc2cdb971ba9bb3b4bb290d"
+    },
+    "pikaos": {
+      "url": "https://git.pika-os.com/website/pika-branding/raw/branch/main/logos/pika-logo.svg",
+      "official_source": "https://git.pika-os.com/website/pika-branding/raw/branch/main/logos/pika-logo.svg",
+      "library": "official",
+      "raster": false,
+      "codepoint": "0xf8057",
+      "cells": 2,
+      "sha256": "f1a8610636004083657e43c4b373e224543e44838d81cefae1bb52f327e93039"
+    },
+    "dragonfly": {
+      "url": "https://www.dragonflybsd.org/images/small_logo.png",
+      "official_source": "https://www.dragonflybsd.org/images/small_logo.png",
+      "library": "official",
+      "raster": true,
+      "codepoint": "0xf801b",
+      "cells": 2,
+      "sha256": "849fe7c304bb6676d5443a8743d63096606364ad44e8a288c1fbef1791ea9d18"
+    },
+    "hardenedbsd": {
+      "url": "https://hardenedbsd.org/sites/default/files/2014-08-21_logo_small_03_0_0.png",
+      "official_source": "https://hardenedbsd.org/sites/default/files/2014-08-21_logo_small_03_0_0.png",
+      "library": "official",
+      "raster": true,
+      "codepoint": "0xf802f",
+      "cells": 2,
+      "sha256": "0e892316c656fee24d220984b62a08bf4cdd73e939d85cb4d562bbee64f60dc3"
+    },
+    "mabox": {
+      "url": "https://maboxlinux.org/wp-content/uploads/2018/12/3D_logo.png",
+      "official_source": "https://maboxlinux.org/wp-content/uploads/2018/12/3D_logo.png",
+      "library": "official",
+      "raster": true,
+      "codepoint": "0xf803e",
+      "cells": 2,
+      "sha256": "d889a128886b3ed35259c1e772fa0e419b22024e6738f9100b83b386a35da883"
+    },
+    "instantos": {
+      "url": "https://instantos.io/apple-touch-icon.png",
+      "official_source": "https://instantos.io/apple-touch-icon.png",
+      "library": "official",
+      "raster": true,
+      "codepoint": "0xf8034",
+      "cells": 2,
+      "sha256": "fd63638ad38baaa75c31f610eb3180e62c78bd2aee9321ef47802f95d12e6799"
+    },
+    "opencloudos": {
+      "url": "https://docs.opencloudos.org/assets/logo.svg",
+      "official_source": "https://docs.opencloudos.org/assets/logo.svg",
+      "library": "official",
+      "raster": false,
+      "codepoint": "0xf8051",
+      "cells": 2,
+      "sha256": "4c9493f68ec851bac6725402cabb3a8d9b4f990114a355d911638b8e32b4c575"
+    },
+    "mariner": {
+      "url": "https://raw.githubusercontent.com/microsoft/CBL-Mariner/2.0/SPECS/calamares/mariner-logo.png",
+      "official_source": "https://raw.githubusercontent.com/microsoft/CBL-Mariner/2.0/SPECS/calamares/mariner-logo.png",
+      "library": "official",
+      "raster": true,
+      "codepoint": "0xf8041",
+      "cells": 2,
+      "sha256": "feabd02d2540bb826af2bd895c30031725dc3c9179d6e05bd1a8b1504918a14c"
+    },
+    "amazonlinux": {
+      "url": "https://d1.awsstatic.com/onedam/marketing-channels/website/aws/en_US/partners/approved/images/e433be0bb839110b73f541b1b3d9ecf9-amazon-linux-logo-partners-1200x900.1108dcf780b8c0047eedb12c8e7529fb43e3c205.png",
+      "official_source": "https://aws.amazon.com/amazon-linux/partners/",
+      "library": "official",
+      "raster": true,
+      "codepoint": "0xf8004",
+      "cells": 2,
+      "sha256": "f853006695609fe43671140026b75a638cfbfd2f5285ae80de5f101f3b43631b"
+    }
+  },
+  "modules": {
+    "aws": "amazonwebservices",
+    "azure": "azure",
+    "bun": "bun",
+    "c": "c",
+    "cpp": "cplusplus",
+    "cmake": "cmake",
+    "conda": "anaconda",
+    "crystal": "crystal",
+    "dart": "dart",
+    "deno": "denojs",
+    "docker_context": "docker",
+    "dotnet": "dotnet-official",
+    "elixir": "elixir",
+    "elm": "elm",
+    "erlang": "erlang",
+    "fortran": "fortran",
+    "gleam": "gleam",
+    "git_branch": "git",
+    "hg_branch": "mercurial",
+    "gcloud": "googlecloud",
+    "golang": "go",
+    "gradle": "gradle",
+    "haskell": "haskell",
+    "haxe": "haxe",
+    "helm": "helm",
+    "java": "java",
+    "julia": "julia",
+    "kotlin": "kotlin",
+    "kubernetes": "kubernetes",
+    "lua": "lua",
+    "maven": "maven",
+    "nats": "nats",
+    "nim": "nim",
+    "nix_shell": "nixos",
+    "nodejs": "nodejs",
+    "ocaml": "ocaml",
+    "odin": "odin",
+    "openstack": "openstack",
+    "perl": "perl",
+    "php": "php",
+    "pulumi": "pulumi",
+    "purescript": "purescript",
+    "rlang": "r",
+    "ruby": "ruby",
+    "rust": "rust",
+    "scala": "scala",
+    "solidity": "solidity",
+    "spack": "spack",
+    "swift": "swift",
+    "terraform": "terraform",
+    "vlang": "vlang",
+    "vagrant": "vagrant",
+    "zig": "zig",
+    "red": "red-lang",
+    "fossil_branch": "fossilscm",
+    "typst": "typst",
+    "buf": "buf",
+    "meson": "meson",
+    "opa": "opa",
+    "direnv": "direnv",
+    "fennel": "fennel",
+    "pixi": "pixi",
+    "mojo": "mojo",
+    "singularity": "singularity",
+    "guix_shell": "guix",
+    "raku": "raku",
+    "xmake": "xmake"
+  },
+  "os": {
+    "AlmaLinux": "almalinux",
+    "Android": "android",
+    "Arch": "archlinux",
+    "Artix": "artixlinux",
+    "CachyOS": "cachyos",
+    "CentOS": "centos",
+    "Debian": "debian",
+    "Fedora": "fedora",
+    "Gentoo": "gentoo",
+    "Kali": "kalilinux",
+    "Linux": "linux",
+    "Mint": "linuxmint",
+    "NixOS": "nixos",
+    "openSUSE": "opensuse",
+    "Redhat": "redhat",
+    "RedHatEnterprise": "redhat",
+    "RockyLinux": "rockylinux",
+    "Windows": "windows11",
+    "AIX": "aix",
+    "Elementary": "elementary",
+    "FreeBSD": "freebsd",
+    "Ios": "ios",
+    "Macos": "macos",
+    "Manjaro": "manjaro",
+    "SUSE": "suse",
+    "Void": "void",
+    "Zorin": "zorin-os",
+    "Alpine": "alpinelinux",
+    "EndeavourOS": "endeavouros",
+    "Garuda": "garudalinux",
+    "NetBSD": "netbsd",
+    "Nobara": "nobaralinux",
+    "OpenBSD": "openbsd",
+    "Pop": "popos",
+    "Redox": "redox",
+    "Solus": "solus",
+    "Raspbian": "raspberrypi",
+    "ALTLinux": "altlinux",
+    "AOSC": "aosc",
+    "Bluefin": "bluefin",
+    "Emscripten": "emscripten",
+    "Illumos": "illumos",
+    "MidnightBSD": "midnightbsd",
+    "openEuler": "openeuler",
+    "Ultramarine": "ultramarine",
+    "PikaOS": "pikaos",
+    "DragonFly": "dragonfly",
+    "HardenedBSD": "hardenedbsd",
+    "Mabox": "mabox",
+    "InstantOS": "instantos",
+    "OpenCloudOS": "opencloudos",
+    "Mariner": "mariner",
+    "Amazon": "amazonlinux"
+  },
+  "preserved_monochrome_os": {
+    "Alpaquita": "未确认可用的官方独立图标素材",
+    "OracleLinux": "已确认标志存档，下载服务器返回 HTTP 429，保留原单色",
+    "Uos": "已确认标志存档，下载服务器返回 HTTP 429，保留原单色",
+    "Unknown": "通用未知系统符号，保持原单色"
+  },
+  "preserved_wordmark_only": {
+    "cobol": "没有独立品牌图标的纯文字标识，保持原齿轮符号及单色",
+    "pijul_channel": "仅有纯文字字标，保持原分支符号及单色"
+  },
+  "preserved_official_color": [
+    "Python",
+    "Ubuntu",
+    "GitHub",
+    "GitLab"
+  ]
+}

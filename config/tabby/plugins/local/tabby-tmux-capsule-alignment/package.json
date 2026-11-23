@@ -1,0 +1,9 @@
+{
+  "name": "tabby-tmux-capsule-alignment",
+  "version": "1.0.0",
+  "author": "Local terminal styling",
+  "description": "Align the tmux session and active-window capsule backgrounds with their text",
+  "keywords": ["tabby-plugin"],
+  "main": "index.js",
+  "license": "MIT"
+}

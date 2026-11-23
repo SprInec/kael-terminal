@@ -1,0 +1,2 @@
+# Unified diff context lines contain significant leading whitespace.
+vendor/tmux/kael.patch -whitespace

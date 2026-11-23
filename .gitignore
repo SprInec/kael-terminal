@@ -1,0 +1,15 @@
+/.git-kael/
+/*.bundle
+/.nvimlog
+/.agents/
+/.aws/
+/.codex/
+/.env*
+/*.local.*
+**/__pycache__/
+**/node_modules/
+**/*.sqlite*
+**/*.db
+**/*.pyc
+**/runtime/
+**/*.bak

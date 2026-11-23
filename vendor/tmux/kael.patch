@@ -1,0 +1,891 @@
+--- /dev/null
++++ b/border-glow.h
+@@ -0,0 +1,98 @@
++/* Local border animation. Pure helpers shared with the geometry tests. */
++#ifndef BORDER_GLOW_H
++#define BORDER_GLOW_H
++#include <stdint.h>
++
++struct border_glow {
++	int left, right, top, bottom;
++	unsigned int period;
++	uint64_t now;
++};
++
++/* Clockwise distance from the top-left corner, or -1 off the frame. */
++static inline int
++border_glow_position(const struct border_glow *g, int x, int y)
++{
++	int width = g->right - g->left, height = g->bottom - g->top;
++
++	if (width <= 0 || height <= 0 || x < g->left || x > g->right ||
++	    y < g->top || y > g->bottom)
++		return (-1);
++	if (y == g->top)
++		return (x - g->left);
++	if (x == g->right)
++		return (width + y - g->top);
++	if (y == g->bottom)
++		return (width + height + g->right - x);
++	if (x == g->left)
++		return (2 * width + height + g->bottom - y);
++	return (-1);
++}
++
++/* Soft leading edge, longer fading tail, seamless across the first corner. */
++static inline double
++border_glow_strength(const struct border_glow *g, int position, int perimeter,
++    double tail, double lead)
++{
++	double head, distance, strength = 0;
++
++	head = (double)(g->now % g->period) * perimeter / g->period;
++	distance = head - position;
++	if (distance < 0)
++		distance += perimeter;
++	if (distance < tail)
++		strength = 1.0 - distance / tail;
++	else if (perimeter - distance < lead)
++		strength = 1.0 - (perimeter - distance) / lead;
++	return (strength * strength * (3.0 - 2.0 * strength));
++}
++
++static inline int
++border_glow_rgb(const struct border_glow *g, int x, int y, int rgb)
++{
++	int position = border_glow_position(g, x, y);
++	int perimeter = 2 * (g->right - g->left + g->bottom - g->top);
++	int channel, value, result = 0;
++	double tail, strength, base, peak;
++
++	if (position < 0 || g->period == 0)
++		return (rgb);
++	tail = perimeter * 0.20;
++	if (tail < 6)
++		tail = 6;
++	if (tail > 48)
++		tail = 48;
++	strength = border_glow_strength(g, position, perimeter, tail, tail * 0.16);
++	for (channel = 0; channel < 24; channel += 8) {
++		value = (rgb >> channel) & 255;
++		base = value * 0.52;
++		/* The highlight matches the active-border colour, without whitening. */
++		peak = value;
++		result |= (int)(base + (peak - base) * strength + 0.5) << channel;
++	}
++	return (result);
++}
++
++/* Sweep a brighter blue over the fill at a phase independent of its length. */
++static inline int
++border_progress_rgb(const struct border_glow *g, int position, int perimeter)
++{
++	const int blue = 0x7aafff, highlight = 0xa9d6ff;
++	int channel, base, peak, result = 0;
++	double tail = perimeter * 0.12, strength;
++
++	if (g->period == 0)
++		return (blue);
++	if (tail < 6)
++		tail = 6;
++	if (tail > 32)
++		tail = 32;
++	strength = border_glow_strength(g, position, perimeter, tail, tail * 0.4);
++	for (channel = 0; channel < 24; channel += 8) {
++		base = (blue >> channel) & 255;
++		peak = (highlight >> channel) & 255;
++		result |= (int)(base + (peak - base) * strength + 0.5) << channel;
++	}
++	return (result);
++}
++#endif
+--- a/format.c
++++ b/format.c
+@@ -2680,7 +2680,7 @@
+ 	char	*value = NULL;
+ 
+ 	if (ft->wp != NULL)
+-		xasprintf(&value, "%d", ft->wp->base.progress_bar.progress);
++		xasprintf(&value, "%d", window_pane_progress_bar(ft->wp).progress);
+ 	return (value);
+ }
+ 
+@@ -2689,7 +2689,7 @@
+ format_cb_pane_pb_state(struct format_tree *ft)
+ {
+ 	if (ft->wp != NULL) {
+-		switch (ft->wp->base.progress_bar.state) {
++		switch (window_pane_progress_bar(ft->wp).state) {
+ 		case PROGRESS_BAR_HIDDEN:
+ 			return xstrdup("hidden");
+ 		case PROGRESS_BAR_NORMAL:
+--- a/input.c
++++ b/input.c
+@@ -100,6 +100,7 @@
+ 	struct window_pane	       *wp;
+ 	struct screen_write_ctx		ctx;
+ 	struct colour_palette	       *palette;
++	int				track_transfer;
+ 
+ 	struct input_cell		cell;
+ 	struct input_cell		old_cell;
+@@ -1069,10 +1070,14 @@
+ 		screen_write_start(sctx, &wp->base);
+ 	sctx->flags |= SCREEN_WRITE_INPUT;
+ 
++	ictx->track_transfer = window_pane_transfer_refresh(wp);
+ 	log_debug("%s: %%%u %s, %zu bytes: %.*s", __func__, wp->id,
+ 	    ictx->state->name, len, (int)len, buf);
+ 
+ 	input_parse(ictx, buf, len);
++	if (ictx->track_transfer)
++		window_pane_transfer_report(wp, 0);
++	ictx->track_transfer = 0;
+ 	screen_write_stop(sctx);
+ }
+ 
+@@ -1248,6 +1253,9 @@
+ 
+ 	input_stop_utf8(ictx); /* can't be valid UTF-8 */
+ 
++	if (ictx->track_transfer)
++		window_pane_transfer_print(ictx->wp, ictx->ch);
++
+ 	set = ictx->cell.set == 0 ? ictx->cell.g0set : ictx->cell.g1set;
+ 	if (set == 1)
+ 		ictx->cell.cell.attr |= GRID_ATTR_CHARSET;
+@@ -1329,6 +1337,15 @@
+ 	input_stop_utf8(ictx); /* can't be valid UTF-8 */
+ 
+ 	log_debug("%s: '%c'", __func__, ictx->ch);
++
++	if (ictx->track_transfer && ictx->state == &input_state_ground) {
++		if (ictx->ch == '\r' || ictx->ch == '\n')
++			window_pane_transfer_report(wp, ictx->ch);
++		else if (ictx->ch == '\v' || ictx->ch == '\f')
++			window_pane_transfer_report(wp, '\n');
++		else if (ictx->ch == '\t' || ictx->ch == '\b')
++			window_pane_transfer_print(wp, ictx->ch);
++	}
+ 
+ 	switch (ictx->ch) {
+ 	case '\000':	/* NUL */
+@@ -1788,6 +1805,8 @@
+ 			screen_write_clearstartofline(sctx, bg);
+ 			break;
+ 		case 2:
++			if (ictx->track_transfer)
++				window_pane_transfer_report(ictx->wp, 'K');
+ 			screen_write_clearline(sctx, bg);
+ 			break;
+ 		default:
+@@ -1986,10 +2005,11 @@
+ 			break;
+ 		case 47:
+ 		case 1047:
+-			screen_write_alternateoff(sctx, gc, 0);
+-			break;
+ 		case 1049:
+-			screen_write_alternateoff(sctx, gc, 1);
++			screen_write_alternateoff(sctx, gc,
++			    input_get(ictx, i, 0, -1) == 1049);
++			if (ictx->wp != NULL && (sctx->flags & SCREEN_WRITE_INPUT))
++				ictx->track_transfer = window_pane_transfer_refresh(ictx->wp);
+ 			break;
+ 		case 2004:
+ 			screen_write_mode_clear(sctx, MODE_BRACKETPASTE);
+@@ -2090,10 +2110,14 @@
+ 			break;
+ 		case 47:
+ 		case 1047:
+-			screen_write_alternateon(sctx, gc, 0);
+-			break;
+ 		case 1049:
+-			screen_write_alternateon(sctx, gc, 1);
++			screen_write_alternateon(sctx, gc,
++			    input_get(ictx, i, 0, -1) == 1049);
++			if (wp != NULL && (sctx->flags & SCREEN_WRITE_INPUT) &&
++			    SCREEN_IS_ALTERNATE(sctx->s)) {
++				window_pane_transfer_reset(wp);
++				ictx->track_transfer = 0;
++			}
+ 			break;
+ 		case 2004:
+ 			screen_write_mode_set(sctx, MODE_BRACKETPASTE);
+@@ -2911,6 +2935,8 @@
+ 	log_debug("%s %hhu '%*s' (width %hhu)", __func__, ud->size,
+ 	    (int)ud->size, ud->data, ud->width);
+ 
++	if (ictx->track_transfer)
++		window_pane_transfer_print(ictx->wp, ' ');
+ 	utf8_copy(&ictx->cell.cell.data, ud);
+ 	screen_write_collect_add(sctx, &ictx->cell.cell);
+ 
+@@ -3047,6 +3073,8 @@
+ {
+ 	screen_set_progress_bar(ictx->ctx.s, state, p);
+ 	if (ictx->wp != NULL) {
++		if (ictx->ctx.s == &ictx->wp->base)
++			window_pane_transfer_reset(ictx->wp);
+ 		server_redraw_window_borders(ictx->wp->window);
+ 		server_status_window(ictx->wp->window);
+ 	}
+@@ -3360,6 +3388,7 @@
+ 		}
+ 		if (wp != NULL) {
+ 			wp->last_prompt_time = time(NULL);
++			window_pane_transfer_reset(wp);
+ 			events_fire_pane("pane-shell-prompt", wp);
+ 		}
+ 		break;
+@@ -3392,6 +3421,7 @@
+ 			wp->cmd_end_time = 0;
+ 			wp->flags |= PANE_CMDRUNNING;
+ 			wp->cmd_status = -1;
++			window_pane_transfer_reset(wp);
+ 			input_fire_command_event(wp, "pane-command-started");
+ 		}
+ 		break;
+@@ -3401,6 +3431,7 @@
+ 			wp->cmd_end_time = time(NULL);
+ 			wp->flags &= ~PANE_CMDRUNNING;
+ 			wp->cmd_status = status;
++			window_pane_transfer_reset(wp);
+ 			input_fire_command_event(wp, "pane-command-finished");
+ 		}
+ 		if (gl != NULL) {
+--- a/screen-redraw.c
++++ b/screen-redraw.c
+@@ -1433,6 +1433,9 @@
+ 	struct window		*w = scene->w;
+ 	struct window_pane	*wp = NULL;
+ 	struct grid_cell	 gc;
++	struct grid_cell	 frame_gc;
++	struct border_glow	 frame;
++	int			 progress, percent, glowing, wx, wy;
+ 	enum pane_lines		 pane_lines;
+ 	u_int			 i, cell_type;
+ 	int			 isolates = 0, blank = 0;
+@@ -1481,8 +1484,27 @@
+ 	tty_cursor(tty, x, y);
+ 	if (isolates)
+ 		tty_puts(tty, REDRAW_END_ISOLATE);
+-	for (i = 0; i < n; i++)
+-		tty_cell(tty, &gc, NULL);
++	progress = !blank && window_pane_border_progress_init(wp, &frame,
++	    &percent);
++	glowing = !blank && !progress &&
++	    window_pane_border_glow_init(wp, &frame);
++	wx = (int)x - (int)dctx->side_left + scene->ox;
++	wy = y + scene->oy;
++	if (dctx->flags & REDRAW_STATUS_TOP)
++		wy -= dctx->status_lines;
++	for (i = 0; i < n; i++) {
++		if (progress || glowing) {
++			memcpy(&frame_gc, &gc, sizeof frame_gc);
++			if (progress)
++				window_pane_border_progress_cell(&frame, percent,
++				    wx + i, wy, &frame_gc);
++			else
++				window_pane_border_glow_cell(&frame, wx + i, wy,
++				    &frame_gc);
++			tty_cell(tty, &frame_gc, NULL);
++		} else
++			tty_cell(tty, &gc, NULL);
++	}
+ 	if (isolates)
+ 		tty_puts(tty, REDRAW_START_ISOLATE);
+ }
+@@ -2064,7 +2086,10 @@
+ 		    scene->sy);
+ 	}
+ #endif
+-	tty_update_mode(tty, tty->mode & ~CURSOR_MODES, NULL);
++	/* Repeated border-only frames preserve the application's cursor mode. */
++	if ((flags & ~(REDRAW_PANE_BORDER|REDRAW_PANE_STATUS)) != 0 ||
++	    (tty->flags & TTY_NOCURSOR))
++		tty_update_mode(tty, tty->mode & ~CURSOR_MODES, NULL);
+ 
+ 	if (wp != NULL)
+ 		redraw_draw_pane_lines(&dctx, wp, flags);
+--- a/server-client.c
++++ b/server-client.c
+@@ -2471,6 +2471,7 @@
+ 	struct window_pane	*wp;
+ 	int			 needed, tflags, mode = tty->mode;
+ 	int			 damaged = !TAILQ_EMPTY(&w->damage);
++	int			 border_only;
+ 	struct timeval		 tv = { .tv_usec = 1000 };
+ 	static struct event	 ev;
+ 	size_t			 n;
+@@ -2528,10 +2529,17 @@
+ 		return;
+ 	}
+ 
+-	/* Unfreeze the tty and turn off the cursor. */
++	/* Border animation must not hide/show or restyle the pane cursor. */
++	border_only = (c->flags & (CLIENT_ALLREDRAWFLAGS|
++	    CLIENT_REDRAWSCROLLBARS)) == CLIENT_REDRAWBORDERS &&
++	    !server_client_any_pane_redraw(c);
++
++	/* Unfreeze the tty; hide the cursor only when drawing other content. */
+ 	log_debug("%s: redraw needed", c->name);
+ 	tflags = tty->flags & (TTY_BLOCK|TTY_FREEZE|TTY_NOCURSOR);
+-	tty->flags = (tty->flags & ~(TTY_BLOCK|TTY_FREEZE))|TTY_NOCURSOR;
++	tty->flags &= ~(TTY_BLOCK|TTY_FREEZE);
++	if (!border_only)
++		tty->flags |= TTY_NOCURSOR;
+ 
+ 	/*
+ 	 * If not redrawing the entire window, check whether each pane needs to
+@@ -2572,7 +2580,8 @@
+ 
+ 	/* Put the tty back how it was. */
+ 	tty->flags = (tty->flags & ~TTY_NOCURSOR)|(tflags & TTY_NOCURSOR);
+-	tty_update_mode(tty, mode, NULL);
++	if (!border_only)
++		tty_update_mode(tty, mode, NULL);
+ 	tty->flags = (tty->flags & ~(TTY_BLOCK|TTY_FREEZE|TTY_NOCURSOR))|tflags;
+ 
+ 	/*
+--- a/server.c
++++ b/server.c
+@@ -47,6 +47,7 @@
+ static int		 server_exit;
+ static struct event	 server_ev_accept;
+ static struct event	 server_ev_tidy;
++static struct event	 server_ev_border_glow;
+ 
+ struct cmd_find_state	 marked_pane;
+ 
+@@ -170,6 +171,50 @@
+     log_debug("%s: took %llu milliseconds", __func__,
+         (unsigned long long)(get_timer() - t));
+     evtimer_add(&server_ev_tidy, &tv);
++}
++
++/* Redraw animated borders and drop stale foreground transfer reports. */
++static void
++server_border_glow_event(__unused int fd, __unused short events,
++    __unused void *data)
++{
++	struct client	*c;
++	struct window	*w;
++	struct window_pane *wp;
++	struct border_glow frame;
++	struct timeval	 tv = { .tv_sec = 1 };
++	static uint64_t	 last_check;
++	uint64_t	 now = get_timer();
++	int		 percent;
++
++	if (now - last_check >= 250) {
++		RB_FOREACH(wp, window_pane_tree, &all_window_panes) {
++			if (wp->transfer.progress != 0)
++				window_pane_transfer_refresh(wp);
++		}
++		last_check = now;
++	}
++	TAILQ_FOREACH(c, &clients, entry) {
++		if (c->session == NULL ||
++		    (c->flags & (CLIENT_CONTROL|CLIENT_UNATTACHEDFLAGS)) ||
++		    !(c->flags & CLIENT_TERMINAL) ||
++		    (c->tty.flags & TTY_BLOCK))
++			continue;
++		w = c->session->curw->window;
++		if (!window_pane_border_glow_init(w->active, &frame)) {
++			TAILQ_FOREACH(wp, &w->panes, entry) {
++				if (window_pane_border_progress_init(wp, &frame,
++				    &percent) && percent > 0)
++					break;
++			}
++			if (wp == NULL)
++				continue;
++		}
++		c->flags |= CLIENT_REDRAWBORDERS;
++		tv.tv_sec = 0;
++		tv.tv_usec = 50000;
++	}
++	evtimer_add(&server_ev_border_glow, &tv);
+ }
+ 
+ /* Fork new server. */
+@@ -255,6 +300,8 @@
+ 
+ 	evtimer_set(&server_ev_tidy, server_tidy_event, NULL);
+ 	evtimer_add(&server_ev_tidy, &tv);
++	evtimer_set(&server_ev_border_glow, server_border_glow_event, NULL);
++	server_border_glow_event(-1, 0, NULL);
+ 
+ 	server_acl_init();
+ 
+--- a/tmux.c
++++ b/tmux.c
+@@ -428,7 +428,7 @@
+ const char *
+ getversion(void)
+ {
+-	return (TMUX_VERSION);
++	return (TMUX_VERSION "-glow3-progress-auto");
+ }
+ 
+ int
+--- a/tmux.h
++++ b/tmux.h
+@@ -35,6 +35,7 @@
+ #endif
+ 
+ #include "compat.h"
++#include "border-glow.h"
+ #include "tmux-image.h"
+ #include "tmux-protocol.h"
+ #include "xmalloc.h"
+@@ -1393,6 +1394,18 @@
+ 	struct event	 sync_timer;
+ 
+ 	struct input_ctx *ictx;
++	struct {
++		pid_t	 pgid;
++		u_int	 progress; /* zero when inactive, otherwise percent + 1 */
++		u_int	 progress_before_line;
++		int	 inline_progress;
++		int	 inline_progress_before_line;
++		size_t	 length;
++		int	 dirty;
++		int	 rewritten;
++		int	 column_meter;
++		char	 line[1024];
++	} transfer;
+ 
+ 	struct grid_cell cached_gc;
+ 	struct grid_cell cached_active_gc;
+@@ -3878,6 +3891,19 @@
+ 		     int, int);
+ 
+ /* window-border.c */
++int		 window_pane_border_glow_init(struct window_pane *,
++		     struct border_glow *);
++void		 window_pane_border_glow_cell(const struct border_glow *,
++		     int, int, struct grid_cell *);
++int		 window_pane_border_progress_init(struct window_pane *,
++		     struct border_glow *, int *);
++void		 window_pane_border_progress_cell(const struct border_glow *,
++		     int, int, int, struct grid_cell *);
++struct progress_bar window_pane_progress_bar(struct window_pane *);
++void		 window_pane_transfer_reset(struct window_pane *);
++int		 window_pane_transfer_refresh(struct window_pane *);
++void		 window_pane_transfer_print(struct window_pane *, int);
++void		 window_pane_transfer_report(struct window_pane *, int);
+ void		 window_set_fill_cells(struct window *);
+ void		 window_get_border_cell(struct window_pane *, enum pane_lines,
+ 		     int, struct grid_cell *);
+--- a/window-border.c
++++ b/window-border.c
+@@ -18,10 +18,343 @@
+ 
+ #include <sys/types.h>
+ 
++#include <ctype.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <unistd.h>
+ 
+ #include "tmux.h"
++
++static int
++window_pane_border_progress_enabled(struct window_pane *wp)
++{
++	struct window *w = wp->window;
++	const char *value;
++
++	if (!window_border_type_is_separate(w) ||
++	    options_get(w->options, "@pane-border-progress") == NULL)
++		return (0);
++	value = options_get_string(w->options, "@pane-border-progress");
++	return (strcmp(value, "on") == 0 || strcmp(value, "1") == 0);
++}
++
++static void
++window_pane_transfer_update(struct window_pane *wp, u_int progress)
++{
++	if (wp->transfer.progress == progress)
++		return;
++	wp->transfer.progress = progress;
++	if (wp->base.progress_bar.state == PROGRESS_BAR_HIDDEN) {
++		server_redraw_window_borders(wp->window);
++		server_status_window(wp->window);
++	}
++}
++
++void
++window_pane_transfer_reset(struct window_pane *wp)
++{
++	pid_t pgid = wp->transfer.pgid;
++
++	window_pane_transfer_update(wp, 0);
++	memset(&wp->transfer, 0, sizeof wp->transfer);
++	wp->transfer.pgid = pgid;
++}
++
++/* Keep inferred progress tied to the foreground job. */
++int
++window_pane_transfer_refresh(struct window_pane *wp)
++{
++	pid_t pgid = -1;
++
++	if (wp->fd != -1 && !(wp->flags & (PANE_EXITED|PANE_DESTROYED)) &&
++	    !SCREEN_IS_ALTERNATE(&wp->base) &&
++	    window_pane_border_progress_enabled(wp))
++		pgid = tcgetpgrp(wp->fd);
++	if (wp->transfer.pgid != pgid) {
++		window_pane_transfer_reset(wp);
++		wp->transfer.pgid = pgid;
++	}
++	return (pgid > 0);
++}
++
++/* Collect a bounded line after the terminal parser has removed escapes. */
++void
++window_pane_transfer_print(struct window_pane *wp, int ch)
++{
++	if (wp->transfer.length >= sizeof wp->transfer.line)
++		return;
++	if (ch == '\b') {
++		if (wp->transfer.length != 0)
++			wp->transfer.length--;
++	} else
++		wp->transfer.line[wp->transfer.length++] = ch;
++	wp->transfer.dirty = 1;
++}
++
++static int
++window_pane_transfer_ratio(const char *start, const char **end)
++{
++	const char		*slash, *denominator;
++	char			*tail;
++	unsigned long long	 done, total;
++
++	if (!isdigit((u_char)*start))
++		return (-1);
++	done = strtoull(start, &tail, 10);
++	slash = tail + strspn(tail, " \t");
++	if (*slash != '/' || tail - start > 18)
++		return (-1);
++	denominator = slash + 1 + strspn(slash + 1, " \t");
++	if (!isdigit((u_char)*denominator))
++		return (-1);
++	total = strtoull(denominator, &tail, 10);
++	if (tail - denominator > 18 || total == 0 || done > total ||
++	    (*tail != '\0' && strchr(" \t)]|", *tail) == NULL))
++		return (-1);
++	*end = tail;
++	return ((int)(100.0L * done / total));
++}
++
++static int
++window_pane_transfer_percent(struct window_pane *wp, const char *line,
++    int *inline_progress)
++{
++	const char	*p, *first, *start, *end, *before, *suffix, *tail;
++	u_int		 total, received, sent;
++	int		 percent, labelled;
++
++	/* Some column meters identify percentages in their header. */
++	if (strstr(line, "% Total") != NULL &&
++	    strstr(line, "% Received") != NULL && strstr(line, "% Xferd") != NULL)
++		wp->transfer.column_meter = 1;
++	if (wp->transfer.column_meter &&
++	    sscanf(line, " %3u %*s %3u %*s %3u", &total, &received, &sent) == 3 &&
++	    total <= 100 && received <= 100 && sent <= 100)
++		return (total);
++
++	first = line + strspn(line, " \t");
++	labelled = strncasecmp(first, "progress:", 9) == 0;
++	for (p = first; (p = strchr(p, '%')) != NULL; p++) {
++		end = p;
++		while (end > first && isblank((u_char)end[-1]))
++			end--;
++		start = end;
++		while (start > first && isdigit((u_char)start[-1]))
++			start--;
++		if (start < end && start > first && start[-1] == '.') {
++			end = --start;
++			while (start > first && isdigit((u_char)start[-1]))
++				start--;
++		}
++		if (start == end || end - start > 3 ||
++		    (start > first && strchr(" \t[(|=:>", start[-1]) == NULL) ||
++		    (p[1] != '\0' && strchr(" \t])[(|", p[1]) == NULL))
++			continue;
++		percent = strtol(start, NULL, 10);
++		if (percent > 100)
++			continue;
++		before = start;
++		while (before > first && isblank((u_char)before[-1]))
++			before--;
++		suffix = p + 1 + strspn(p + 1, " \t");
++		/* Plain log percentages need redraw evidence or meter syntax. */
++		if (labelled || (*first == '[' && before == first + 1 &&
++		    *suffix == ']') || (*suffix == '(' &&
++		    window_pane_transfer_ratio(suffix + 1, &tail) >= 0 &&
++		    *tail == ')') || strstr(line, "..........") != NULL)
++			return (percent);
++		if (wp->transfer.rewritten) {
++			*inline_progress = 1;
++			return (percent);
++		}
++	}
++	if (!wp->transfer.rewritten && !labelled)
++		return (-1);
++	for (p = first; (p = strchr(p, '/')) != NULL; p++) {
++		start = p;
++		while (start > first && isblank((u_char)start[-1]))
++			start--;
++		while (start > first && isdigit((u_char)start[-1]))
++			start--;
++		if (start > first && strchr(" \t[(|=:", start[-1]) == NULL)
++			continue;
++		percent = window_pane_transfer_ratio(start, &tail);
++		if (percent >= 0 && tail > p) {
++			*inline_progress = !labelled;
++			return (percent);
++		}
++	}
++	return (-1);
++}
++
++void
++window_pane_transfer_report(struct window_pane *wp, int boundary)
++{
++	int percent = -1, inline_progress = 0;
++
++	if (wp->transfer.dirty &&
++	    wp->base.progress_bar.state == PROGRESS_BAR_HIDDEN) {
++		if (wp->transfer.length < sizeof wp->transfer.line) {
++			wp->transfer.line[wp->transfer.length] = '\0';
++			percent = window_pane_transfer_percent(wp, wp->transfer.line,
++			    &inline_progress);
++		}
++		/* More bytes can invalidate a token accepted at the end of a read. */
++		if (percent >= 0) {
++			wp->transfer.inline_progress = inline_progress;
++			window_pane_transfer_update(wp, percent + 1);
++		} else {
++			wp->transfer.inline_progress =
++			    wp->transfer.inline_progress_before_line;
++			window_pane_transfer_update(wp, wp->transfer.progress_before_line);
++		}
++	}
++	wp->transfer.dirty = 0;
++	if (boundary != 0) {
++		wp->transfer.length = 0;
++		wp->transfer.rewritten = (boundary != '\n');
++		/* Without an explicit meter, the status ends with its line. */
++		if (boundary == '\n' && (wp->transfer.inline_progress ||
++		    wp->transfer.progress == 101)) {
++			wp->transfer.inline_progress = 0;
++			window_pane_transfer_update(wp, 0);
++		}
++		wp->transfer.progress_before_line = wp->transfer.progress;
++		wp->transfer.inline_progress_before_line = wp->transfer.inline_progress;
++	}
++}
++
++struct progress_bar
++window_pane_progress_bar(struct window_pane *wp)
++{
++	struct progress_bar pb = wp->base.progress_bar;
++
++	if (pb.state == PROGRESS_BAR_HIDDEN && wp->transfer.progress != 0 &&
++	    window_pane_border_progress_enabled(wp)) {
++		pb.state = PROGRESS_BAR_NORMAL;
++		pb.progress = wp->transfer.progress - 1;
++	}
++	return (pb);
++}
++
++/* Positions are shared by the focus animation and the transfer progress. */
++static int
++window_pane_border_frame(struct window_pane *wp, struct border_glow *glow)
++{
++	struct window *w = wp->window;
++	int scrollbar;
++
++	glow->left = (int)wp->xoff - 1;
++	glow->right = wp->xoff + wp->sx;
++	glow->top = (int)wp->yoff - 1;
++	glow->bottom = wp->yoff + wp->sy;
++	if (window_pane_scrollbar_visible(wp) &&
++	    !window_pane_scrollbar_overlay(wp)) {
++		scrollbar = wp->scrollbar_style.width + wp->scrollbar_style.pad;
++		if (w->sb_pos == PANE_SCROLLBARS_LEFT)
++			glow->left -= scrollbar;
++		else
++			glow->right += scrollbar;
++	}
++	if (window_pane_is_floating(wp)) {
++		if (glow->left < 0)
++			glow->left = 0;
++		if (glow->right >= (int)w->sx)
++			glow->right = w->sx - 1;
++		if (glow->top < 0)
++			glow->top = 0;
++		if (glow->bottom >= (int)w->sy)
++			glow->bottom = w->sy - 1;
++	}
++	return (glow->right > glow->left && glow->bottom > glow->top);
++}
++
++int
++window_pane_border_progress_init(struct window_pane *wp, struct border_glow *g,
++    int *percent)
++{
++	struct progress_bar pb;
++
++	if (wp == NULL || !window_pane_is_visible(wp) ||
++	    (wp->flags & (PANE_EXITED|PANE_DESTROYED)) ||
++	    !window_pane_border_progress_enabled(wp))
++		return (0);
++	pb = window_pane_progress_bar(wp);
++	if (pb.state == PROGRESS_BAR_HIDDEN)
++		return (0);
++	*percent = pb.state == PROGRESS_BAR_INDETERMINATE ? 0 : pb.progress;
++	g->period = 2400;
++	g->now = (get_timer() / 50) * 50;
++	return (window_pane_border_frame(wp, g));
++}
++
++void
++window_pane_border_progress_cell(const struct border_glow *g, int percent,
++    int x, int y, struct grid_cell *gc)
++{
++	int position = border_glow_position(g, x, y);
++	int perimeter = 2 * (g->right - g->left + g->bottom - g->top);
++
++	if (position < 0)
++		return;
++	/* The first straight cell starts the fill, so the corner closes the lap. */
++	position = position == 0 ? perimeter - 1 : position - 1;
++	if (position < (int64_t)perimeter * percent / 100)
++		gc->fg = COLOUR_FLAG_RGB | border_progress_rgb(g, position, perimeter);
++	else
++		gc->fg = COLOUR_FLAG_256 | 238;
++	gc->attr &= ~GRID_ATTR_REVERSE;
++}
++
++/* Only the active pane in a separate-border layout is animated. */
++int
++window_pane_border_glow_init(struct window_pane *wp, struct border_glow *glow)
++{
++	struct window	*w;
++	struct options	*oo;
++	const char	*value, *error;
++	long long	 period = 4000;
++	int		 percent;
++
++	if (wp == NULL)
++		return (0);
++	w = wp->window;
++	oo = w->options;
++	if (wp != w->active || !window_border_type_is_separate(w) ||
++	    !window_pane_is_visible(wp) ||
++	    options_get(oo, "@pane-border-glow") == NULL)
++		return (0);
++	if (window_pane_border_progress_init(wp, glow, &percent))
++		return (0);
++	value = options_get_string(oo, "@pane-border-glow");
++	if (strcmp(value, "on") != 0 && strcmp(value, "1") != 0)
++		return (0);
++	if (options_get(oo, "@pane-border-glow-period") != NULL) {
++		value = options_get_string(oo, "@pane-border-glow-period");
++		period = strtonum(value, 1000, 60000, &error);
++		if (error != NULL)
++			period = 4000;
++	}
++	glow->period = period;
++	glow->now = (get_timer() / 50) * 50;
++	return (window_pane_border_frame(wp, glow));
++}
++
++void
++window_pane_border_glow_cell(const struct border_glow *glow, int x, int y,
++    struct grid_cell *gc)
++{
++	int colour = gc->fg;
++
++	if (!(colour & COLOUR_FLAG_RGB)) {
++		if (colour == 8 || colour == 9)
++			colour = 0xb1e969;
++		else
++			colour = colour_256toRGB(colour & 255);
++	}
++	gc->fg = border_glow_rgb(glow, x, y, colour & 0xffffff) |
++	    COLOUR_FLAG_RGB;
++}
+ 
+ /* Set window fill cell. */
+ static void
+@@ -187,6 +520,10 @@
+ {
+ 	struct window		*w = wp->window;
+ 	struct grid_cell	 gc;
++	struct grid_cell	 border_gc;
++	struct border_glow	 frame;
++	struct redraw_span	*status_span = span;
++	int			 glowing, progress, percent, border_y, leading = 1;
+ 	const char		*fmt;
+ 	struct format_tree	*ft;
+ 	struct style_line_entry	*sle = &wp->border_status_line;
+@@ -217,10 +554,18 @@
+ 	border_type = options_get_number(w->options, "pane-border-type");
+ 	if (border_type == PANE_BORDER_TYPE_SEPARATE_ACTIVE && wp != w->active)
+ 		pane_lines = PANE_LINES_SPACES;
++	progress = window_pane_border_progress_init(wp, &frame, &percent);
++	glowing = !progress && window_pane_border_glow_init(wp, &frame);
++	border_y = pane_status == PANE_STATUS_TOP ?
++	    (int)wp->yoff - 1 : (int)(wp->yoff + wp->sy);
+ 	for (i = 0; i < width; i++) {
+ 		cell_type = redraw_get_status_border_cell_type(&span, i);
+ 		window_get_border_cell(wp, pane_lines, cell_type, &gc);
+-		screen_write_cell(&ctx, &gc);
++		memcpy(&border_gc, &gc, sizeof border_gc);
++		if (glowing)
++			window_pane_border_glow_cell(&frame, wp->xoff + 2 + i,
++			    border_y, &border_gc);
++		screen_write_cell(&ctx, &border_gc);
+ 	}
+ 	gc.attr &= ~GRID_ATTR_CHARSET;
+ 
+@@ -229,6 +574,23 @@
+ 	format_draw(&ctx, &gc, width, expanded, &sle->ranges, 0);
+ 
+ 	screen_write_stop(&ctx);
++	if (progress) {
++		for (i = 0; i < width; i++) {
++			grid_view_get_cell(wp->status_screen.grid, i, 0, &border_gc);
++			/* Keep title padding from cutting off the start of the bar. */
++			if (leading && border_gc.data.size == 1 &&
++			    border_gc.data.data[0] == ' ') {
++				cell_type = redraw_get_status_border_cell_type(
++				    &status_span, i);
++				window_get_border_cell(wp, pane_lines, cell_type,
++				    &border_gc);
++			} else
++				leading = 0;
++			window_pane_border_progress_cell(&frame, percent,
++			    wp->xoff + 2 + i, border_y, &border_gc);
++			grid_view_set_cell(wp->status_screen.grid, i, 0, &border_gc);
++		}
++	}
+ 	format_free(ft);
+ 
+ 	free(sle->expanded);
+--- a/window.c
++++ b/window.c
+@@ -1760,6 +1760,7 @@
+ void
+ window_pane_set_event(struct window_pane *wp)
+ {
++	memset(&wp->transfer, 0, sizeof wp->transfer);
+ 	setblocking(wp->fd, 0);
+ 
+ 	wp->event = bufferevent_new(wp->fd, window_pane_read_callback,

@@ -1,0 +1,40 @@
+#!/bin/sh
+set -eu
+config=${XDG_CONFIG_HOME:-"$HOME/.config"}
+data=${XDG_DATA_HOME:-"$HOME/.local/share"}
+tmux_bin=${KAEL_TMUX_BIN:-"$data/kael-terminal/bin/tmux"}
+
+if [ ! -x "$tmux_bin" ]; then
+    echo "未找到定制 tmux。请运行 ./bootstrap.sh，或将 KAEL_TMUX_BIN 指向兼容的构建。" >&2
+    exit 1
+fi
+
+case "${TMUX-}" in
+    */kael-borders,*|*/kael-borders-sixel,*)
+        socket=${TMUX%,*,*}
+        exec "$tmux_bin" -S "$socket" "$@"
+        ;;
+esac
+
+sixel=
+case "${KAEL_TMUX_MODE:-auto}" in
+    plain) ;;
+    sixel) sixel=1 ;;
+    auto)
+        case "${TERM_PROGRAM-}:${TABBY_CONFIG_DIRECTORY-}" in
+            Tabby:*|tabby:*|*:?*) sixel=1 ;;
+        esac
+        ;;
+    *)
+        echo "KAEL_TMUX_MODE 支持 auto、plain 和 sixel。" >&2
+        exit 2
+        ;;
+esac
+if [ "$#" -eq 0 ]; then
+    set -- new-session -A -s work
+fi
+unset TMUX TMUX_PANE
+if [ -n "$sixel" ]; then
+    exec "$tmux_bin" -T sixel -L kael-borders-sixel -f "$config/tmux/independent-borders.conf" "$@"
+fi
+exec "$tmux_bin" -L kael-borders -f "$config/tmux/independent-borders.conf" "$@"

@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ -f "$root/.git-kael/HEAD" ]; then
+    exec git --git-dir="$root/.git-kael" --work-tree="$root" -C "$root" "$@"
+fi
+exec git -C "$root" "$@"

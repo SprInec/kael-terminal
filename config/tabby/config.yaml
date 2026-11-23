@@ -1,0 +1,571 @@
+version: 8
+hotkeys:
+  toggle-window:
+  - Ctrl-Space
+  copy-current-path: []
+  debug-save-state:
+  - Ctrl-Shift-Alt-1
+  debug-load-state:
+  - Ctrl-Shift-Alt-2
+  debug-copy-state:
+  - Ctrl-Shift-Alt-3
+  debug-paste-state:
+  - Ctrl-Shift-Alt-4
+  debug-save-output:
+  - Ctrl-Shift-Alt-5
+  debug-load-output:
+  - Ctrl-Shift-Alt-6
+  debug-copy-output:
+  - Ctrl-Shift-Alt-7
+  debug-paste-output:
+  - Ctrl-Shift-Alt-8
+  ctrl-c:
+  - Ctrl-C
+  copy:
+  - Ctrl-Shift-C
+  paste:
+  - Ctrl-Shift-V
+  - Shift-Insert
+  - Ctrl-V
+  select-all:
+  - Ctrl-Shift-A
+  clear: []
+  zoom-in:
+  - Ctrl-=
+  - Ctrl-Shift-=
+  zoom-out:
+  - Ctrl--
+  - Ctrl-Shift--
+  reset-zoom:
+  - Ctrl-0
+  home: []
+  end: []
+  previous-word:
+  - Ctrl-Left
+  next-word:
+  - Ctrl-Right
+  delete-previous-word:
+  - Ctrl-Backspace
+  delete-line:
+  - Ctrl-Shift-Backspace
+  delete-next-word:
+  - Ctrl-Delete
+  search:
+  - Ctrl-F
+  pane-focus-all:
+  - Ctrl-Shift-I
+  focus-all-tabs:
+  - Ctrl-Alt-Shift-I
+  scroll-to-top:
+  - Ctrl-PageUp
+  scroll-page-up:
+  - Alt-PageUp
+  scroll-up:
+  - Ctrl-Shift-Up
+  scroll-down:
+  - Ctrl-Shift-Down
+  scroll-page-down:
+  - Alt-PageDown
+  scroll-to-bottom:
+  - Ctrl-PageDown
+  restart-telnet-session: []
+  restart-ssh-session: []
+  launch-winscp: []
+  open-sftp: []
+  settings-tab:
+    windy-quick-commands: []
+  settings:
+  - Ctrl-,
+  serial:
+  - Alt-K
+  restart-serial-session: []
+  new-tab:
+  - Ctrl-Shift-T
+  new-window:
+  - Ctrl-Shift-N
+  toggle-fullscreen:
+  - F11
+  close-tab:
+  - Ctrl-Shift-W
+  reopen-tab:
+  - Ctrl-Shift-Z
+  toggle-last-tab: []
+  rename-tab:
+  - Ctrl-Shift-R
+  next-tab:
+  - Ctrl-Shift-Right
+  - Ctrl-Tab
+  previous-tab:
+  - Ctrl-Shift-Left
+  - Ctrl-Shift-Tab
+  move-tab-left:
+  - Ctrl-Shift-PageUp
+  move-tab-right:
+  - Ctrl-Shift-PageDown
+  rearrange-panes:
+  - Ctrl-Shift
+  duplicate-tab: []
+  pin-tab: []
+  restart-tab: []
+  reconnect-tab: []
+  disconnect-tab: []
+  explode-tab:
+  - Ctrl-Shift-.
+  combine-tabs:
+  - Ctrl-Shift-,
+  tab-1:
+  - Alt-1
+  tab-2:
+  - Alt-2
+  tab-3:
+  - Alt-3
+  tab-4:
+  - Alt-4
+  tab-5:
+  - Alt-5
+  tab-6:
+  - Alt-6
+  tab-7:
+  - Alt-7
+  tab-8:
+  - Alt-8
+  tab-9:
+  - Alt-9
+  tab-10:
+  - Alt-0
+  tab-11: []
+  tab-12: []
+  tab-13: []
+  tab-14: []
+  tab-15: []
+  tab-16: []
+  tab-17: []
+  tab-18: []
+  tab-19: []
+  tab-20: []
+  split-right:
+  - Ctrl-D
+  split-bottom:
+  - Ctrl-S
+  split-left:
+  - Ctrl-A
+  split-top:
+  - Ctrl-W
+  pane-nav-right:
+  - Alt-D
+  pane-nav-down:
+  - Alt-S
+  pane-nav-up:
+  - Alt-W
+  pane-nav-left:
+  - Alt-A
+  pane-nav-previous:
+  - Ctrl-Alt-[
+  pane-nav-next:
+  - Ctrl-Alt-]
+  pane-nav-1: []
+  pane-nav-2: []
+  pane-nav-3: []
+  pane-nav-4: []
+  pane-nav-5: []
+  pane-nav-6: []
+  pane-nav-7: []
+  pane-nav-8: []
+  pane-nav-9: []
+  pane-maximize:
+  - Ctrl-Alt-Enter
+  pane-increase-vertical: []
+  pane-decrease-vertical: []
+  pane-increase-horizontal: []
+  pane-decrease-horizontal: []
+  close-pane:
+  - Ctrl-Q
+  switch-profile:
+  - Ctrl-Alt-T
+  profile-selector:
+  - Ctrl-Shift-E
+  command-selector:
+  - Ctrl-Shift-P
+  sftp-plus-toggle-panel: []
+  insert-new-line:
+  - Alt-Shift-Enter
+  next-mru-tab: []
+  previous-mru-tab: []
+  windy-command-center-settings: []
+  windy-command-center-toggle:
+  - Ctrl-P
+  windy-command-center-focus: []
+  windy-command-center-hints:
+  - Ctrl-Alt-H
+  qc:
+  - Alt-Q
+  agentdeck-paste: []
+  agentdeck-new-tab:
+  - Ctrl-T
+  - ⌘-T
+  agentdeck-repair:
+  - Ctrl-R
+  agentdeck-newline:
+  - Ctrl-Enter
+  - Shift-Enter
+  agentdeck-toggle: []
+  agentdeck-focus-list:
+  - Ctrl-L
+  agentdeck-jump-1:
+  - Ctrl-1
+  agentdeck-jump-2:
+  - Ctrl-2
+  agentdeck-jump-3:
+  - Ctrl-3
+  agentdeck-jump-4:
+  - Ctrl-4
+  agentdeck-jump-5:
+  - Ctrl-5
+  agentdeck-jump-6:
+  - Ctrl-6
+  agentdeck-jump-7:
+  - Ctrl-7
+  agentdeck-jump-8:
+  - Ctrl-8
+  agentdeck-jump-9:
+  - Ctrl-9
+  agentdeck-view:
+  - Ctrl-O
+  agentdeck-view-mode: []
+  tmuxPlugin:
+    previous-window:
+    - Ctrl-Shift-[
+    next-window:
+    - Ctrl-Shift-]
+    window-1:
+    - Ctrl-Shift-1
+    window-2:
+    - Ctrl-Shift-2
+    window-3:
+    - Ctrl-Shift-3
+    window-4:
+    - Ctrl-Shift-4
+    window-5:
+    - Ctrl-Shift-5
+    window-6:
+    - Ctrl-Shift-6
+    window-7:
+    - Ctrl-Shift-7
+    window-8:
+    - Ctrl-Shift-8
+    window-9:
+    - Ctrl-Shift-9
+    new-window:
+    - Ctrl-Shift-B
+    toggle-tmux-mode:
+    - Ctrl-Shift-X
+  toggle-tabs: []
+terminal:
+  searchOptions: {}
+  colorScheme:
+    name: Tabby Default
+    foreground: '#cacaca'
+    background: '#171717'
+    cursor: '#bbbbbb'
+    colors:
+    - '#000000'
+    - '#ff615a'
+    - '#b1e969'
+    - '#ebd99c'
+    - '#5da9f6'
+    - '#e86aff'
+    - '#82fff7'
+    - '#dedacf'
+    - '#313131'
+    - '#f58c80'
+    - '#ddf88f'
+    - '#eee5b2'
+    - '#a5c7ff'
+    - '#ddaaff'
+    - '#b7fff9'
+    - '#ffffff'
+  customColorSchemes: []
+  bell: visual
+  fallbackFont: ''
+  lightColorScheme:
+    name: Tabby Default Light
+    foreground: '#4d4d4c'
+    background: '#ffffff'
+    cursor: '#4d4d4c'
+    colors:
+    - '#000000'
+    - '#c82829'
+    - '#718c00'
+    - '#eab700'
+    - '#4271ae'
+    - '#8959a8'
+    - '#3e999f'
+    - '#ffffff'
+    - '#000000'
+    - '#c82829'
+    - '#718c00'
+    - '#eab700'
+    - '#4271ae'
+    - '#8959a8'
+    - '#3e999f'
+    - '#ffffff'
+  hideTabIndex: true
+  linePadding: 1
+  background: colorScheme
+  fontWeight: 500
+  profile: local:custom:kael-zsh
+  paletteGenerate: true
+  paletteHarmonious: true
+  rightClick: 'off'
+  cursor: underline
+  font: Starship Prompt Icons,Liberation Mono,SauceCodePro Nerd Font Mono
+  sixel: true
+appearance:
+  colorSchemeMode: auto
+  css: "terminaltab > .content {\n  margin: 6px 6px 4px !important;\n  align-content:\
+    \ end;\n}\n"
+enableAnalytics: false
+enableWelcomeTab: false
+pluginBlacklist:
+- quick-cmds
+- sftp-plus
+profileDefaults:
+  ssh:
+    disableDynamicTitle: true
+highlightPlugin:
+  advanced: {}
+  highlightProfiles:
+  - id: 60606be0-c0ff-42bc-bf77-de8a2435447f
+    name: Default
+    keywords:
+    - text: ERROR
+      enabled: true
+      background: true
+      backgroundColor: '1'
+    - text: WARN
+      enabled: true
+      background: true
+      backgroundColor: '3'
+    - text: INFO
+      enabled: true
+      background: true
+      backgroundColor: '6'
+    - text: 错误
+      enabled: true
+      background: true
+      backgroundColor: '1'
+    - text: 警告
+      enabled: true
+      background: true
+      backgroundColor: '3'
+    - text: 信息
+      enabled: true
+      background: true
+      backgroundColor: '6'
+  replaceProfiles:
+  - id: 986666dd-dac9-4c7a-a295-9b4aff66abdd
+    name: Default
+    patterns:
+    - enabled: true
+      search: ERROR
+      replace: 出错啦
+    - enabled: true
+      search: WARN
+      replace: 警告警告
+backgroundPlugin:
+  uiFontFamily: SauceCodePro Nerd Font
+  backgrounds: []
+quickCmdBtnPlugin:
+  useSystemTheme: true
+  disableTabs: true
+profiles:
+- type: local
+  name: Zsh
+  id: local:custom:kael-zsh
+  icon: fas fa-terminal
+  options:
+    command: /usr/bin/zsh
+    args:
+    - -l
+    env: {}
+    shellType: unix
+    homeDirArgs: []
+tabby-sftp-plus:
+  panelHotkeys:
+    delete: {}
+    rename: {}
+    refresh: {}
+    up: {}
+    back: {}
+    forward: {}
+    upload: {}
+    download: {}
+    newFolder: {}
+    newFile: {}
+    details: {}
+    copyPath: {}
+    openLocal: {}
+    viewFile:
+      keys: []
+    editFile:
+      keys: []
+    openFile: {}
+  editableFileExtensions:
+  - asc
+  - bash
+  - bat
+  - c
+  - cc
+  - cfg
+  - cjs
+  - clj
+  - cljs
+  - cmake
+  - cmd
+  - conf
+  - config
+  - cpp
+  - crt
+  - cs
+  - csr
+  - css
+  - csv
+  - cxx
+  - dart
+  - diff
+  - dockerignore
+  - editorconfig
+  - env
+  - erl
+  - eslintrc
+  - ex
+  - exs
+  - fish
+  - fs
+  - fsx
+  - gitignore
+  - go
+  - gradle
+  - h
+  - hh
+  - hpp
+  - hrl
+  - htaccess
+  - htm
+  - html
+  - inf
+  - ini
+  - java
+  - js
+  - json
+  - json5
+  - jsonc
+  - jsx
+  - key
+  - kt
+  - kts
+  - less
+  - lock
+  - log
+  - lua
+  - make
+  - markdown
+  - md
+  - mjs
+  - mk
+  - nginx
+  - npmrc
+  - nvmrc
+  - patch
+  - pem
+  - php
+  - pl
+  - pm
+  - prettierrc
+  - properties
+  - ps1
+  - psm1
+  - pub
+  - py
+  - pyw
+  - r
+  - rb
+  - reg
+  - rs
+  - sass
+  - scala
+  - scss
+  - sh
+  - sql
+  - svelte
+  - swift
+  - toml
+  - ts
+  - tsv
+  - tsx
+  - txt
+  - vb
+  - vim
+  - vue
+  - xhtml
+  - xml
+  - yaml
+  - yml
+  - zsh
+  colorPrimary: '#b6b6c3'
+  colorBg: '#1a1d23'
+  colorText: '#e8edf5'
+  colorBorder: '#2d3242'
+  dateFormat: YYYY-MM-DD HH:mm:ss
+  panelGeometry:
+    left: 17.7%
+    top: 0.21%
+    width: 60.45%
+    height: 89.87%
+    maximized: true
+    followWindow: true
+  hideNativeSFTPButton: true
+  openOnClick: single
+  contextMenuOrder:
+  - transfer
+  - upload
+  - download
+  - downloadTo
+  - openLocal
+  - openFile
+  - revealInExplorer
+  - copy
+  - cut
+  - paste
+  - rename
+  - delete
+  - chmod
+  - details
+  - newFolder
+  - newFile
+  - refresh
+  - selectAll
+  - selectInvert
+  - copyPath
+  - groupBy
+  defaultShowHidden: true
+  transferUploadConcurrency: 10
+  transferDownloadConcurrency: 10
+  conflictAutoSkipSameContent: false
+  defaultPathMode: mirror
+  topBarOrder:
+  - pathMode
+  - layout
+  - transferLog
+  - settings
+  - minimize
+  - maximize
+  - overflow
+  - close
+  topBarPinned:
+  - pathMode
+  - layout
+  - transferLog
+  - settings
+  - minimize
+  - maximize

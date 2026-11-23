@@ -1,0 +1,3 @@
+# History lives on this device unless sync is configured explicitly.
+auto_sync = false
+enter_accept = true

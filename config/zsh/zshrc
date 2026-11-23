@@ -1,0 +1,3 @@
+# >>> kael-terminal >>>
+source "${XDG_CONFIG_HOME:-$HOME/.config}/kael-terminal/terminal-tools.zsh"
+# <<< kael-terminal <<<

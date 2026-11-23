@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "tabby-background": "^2.2.4",
+    "tabby-highlight": "^3.0.0",
+    "tabby-sftp-plus": "^3.2.1",
+    "tabby-sync-output": "file:./local/tabby-sync-output",
+    "tabby-tmux-capsule-alignment": "file:./local/tabby-tmux-capsule-alignment",
+    "tabby-windy-quick-commands": "^2.1.4"
+  }
+}

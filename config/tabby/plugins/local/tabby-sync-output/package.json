@@ -1,0 +1,9 @@
+{
+  "name": "tabby-sync-output",
+  "version": "1.0.0",
+  "author": "Local terminal fixes",
+  "description": "Batch synchronized terminal output frames to prevent tmux border redraw cursor flicker",
+  "keywords": ["tabby-plugin"],
+  "main": "index.js",
+  "license": "MIT"
+}

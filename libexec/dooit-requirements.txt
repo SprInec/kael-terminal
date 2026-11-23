@@ -1,0 +1,6 @@
+# Dooit's local extensions depend on internals of these packages.
+dooit==3.3.4
+dooit-extras==0.2.1
+textual==8.2.8
+rich==15.0.0
+SQLAlchemy==2.0.55
