@@ -2,13 +2,13 @@
 
 # kael-terminal
 
-[![MIT 开源许可证](https://img.shields.io/badge/License-MIT-26734D?style=flat-square)](LICENSE) [![支持 Ubuntu 和 Debian](https://img.shields.io/badge/Linux-Ubuntu%20%2B%20Debian-355E8D?style=flat-square)](#快速开始) [![支持 x86_64 和 aarch64](https://img.shields.io/badge/Arch-x86__64%20%2B%20aarch64-635B9A?style=flat-square)](#快速开始)
-
-面向 Linux 工作站和服务器的终端配置。用 Zsh 和 Starship 统一提示符与快捷键，用定制 tmux 保留工作会话，再用一组命令行工具完成文件浏览、搜索、编辑和任务管理。桌面安装还会配置 Tabby、字体和 Sixel 图像预览。
-
 **简体中文** · [English](README_en.md)
 
+[![MIT 开源许可证](https://img.shields.io/badge/License-MIT-26734D?style=flat-square)](LICENSE) [![支持 Ubuntu 和 Debian](https://img.shields.io/badge/Linux-Ubuntu%20%2B%20Debian-355E8D?style=flat-square)](#快速开始) [![支持 x86_64 和 aarch64](https://img.shields.io/badge/Arch-x86__64%20%2B%20aarch64-635B9A?style=flat-square)](#快速开始)
+
 [快速开始](#快速开始) · [日常工具](#日常工具) · [工作会话](#工作会话) · [自定义和回滚](#自定义和回滚) · [许可证](#许可证)
+
+面向 Linux 工作站和服务器的终端配置。用 Zsh 和 Starship 统一提示符与快捷键，用定制 tmux 保留工作会话，再用一组命令行工具完成文件浏览、搜索、编辑和任务管理。桌面安装还会配置 Tabby、字体和 Sixel 图像预览。
 
 </div>
 
