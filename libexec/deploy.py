@@ -114,6 +114,7 @@ def config_files(headless, tabby_modules):
         "@@TMUX_STATUS@@": tmux_quote(XDG_CONFIG / "tmux/status.conf"),
         "@@TMUX_BASE@@": tmux_quote(HOME / ".tmux.conf"),
         "@@ZSH@@": tmux_quote(zsh),
+        "@@ADA_PYTHON@@": json.dumps(shutil.which("/usr/bin/python3") or "python3"),
         "@@ADA_SCRIPT@@": json.dumps(str(CODEX / "statusline/ada-usage-statusline/statusline.py"),
                                     ensure_ascii=False),
     }

@@ -3,6 +3,7 @@
 from functools import lru_cache
 import json
 import math
+import shutil
 import subprocess
 import sys
 import time
@@ -25,7 +26,7 @@ TOOL = {
 PANEL = "#1D1D1D"
 BORDER = "#5D5D5D"
 MODEL_GOLD = "#EFCC88"
-MODEL_GOLD_GRADIENT = (MODEL_GOLD, "#FFE4A6")
+FAST_GOLD = "#F6C85F"
 MODEL_EFFORT = "#A89A7F"
 WEEKLY = "#B6C7C1"
 CONTEXT = "#8BCCA8"
@@ -48,10 +49,11 @@ RAIL = "─"
 WEEK_MINUTES = 7 * 24 * 60
 EFFORT_LABELS = {"default": "def", "medium": "med", "minimal": "min"}
 EFFORT_GRADIENTS = {
-    "max": ("#E59355", "#FFE4A6"),
-    "ultra": ("#EFCC88", "#C19AF8"),
+    "max": ("#EBBB81", "#F6D9A0"),
+    "ultra": ("#BFACED", "#E5CDF8"),
 }
 WORD_JOINER = "\N{WORD JOINER}"
+GIT_COMMAND = shutil.which("/usr/bin/git") or "git"
 
 
 def text(value, color, weight="normal"):
@@ -85,7 +87,7 @@ def compact(value, width):
 def git(cwd, *args):
     try:
         result = subprocess.run(
-            ["git", "--no-optional-locks", "-C", cwd, *args],
+            [GIT_COMMAND, "--no-optional-locks", "-C", cwd, *args],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             timeout=0.2,
@@ -217,17 +219,27 @@ def git_badge(cwd):
     return badge(*spans)
 
 
-def model_badge(name, effort):
+def model_badge(name, effort, fast):
+    name_spans = [text(name, MODEL_GOLD)]
+    if fast:
+        name_spans.insert(0, text("⚡", FAST_GOLD))
+
     stops = EFFORT_GRADIENTS.get(effort)
     if stops is None:
         caption = f"·{EFFORT_LABELS.get(effort, effort[:10])}" if effort else ""
-        return badge(text(name, MODEL_GOLD), text(caption, MODEL_EFFORT))
+        return badge(*name_spans, text(caption, MODEL_EFFORT))
 
-    return badge(
-        *gradient_spans(name, MODEL_GOLD_GRADIENT),
-        text("·", MODEL_EFFORT),
-        *gradient_spans(effort.upper(), stops, weight="bold"),
-    )
+    return {
+        "type": "row",
+        "props": {"gap": 1, "wrap": "nowrap"},
+        "children": [
+            badge(*name_spans),
+            {
+                "type": "text",
+                "children": list(gradient_spans(effort.upper(), stops, weight="bold")),
+            },
+        ],
+    }
 
 
 def render(state):
@@ -236,6 +248,7 @@ def render(state):
     model = thread.get("model", {})
     name = compact(" ".join((model.get("display_name") or "Codex").split()), 20)
     effort = model.get("reasoning_level") or ("default" if model else None)
+    fast = model.get("service_tier") == "fast"
     context = thread.get("usage", {}).get("context", {})
     cwd = thread.get("workspace", {}).get("cwd")
     weekly_left = weekly_remaining(state.get("account", {}))
@@ -248,7 +261,7 @@ def render(state):
             badge(*meter("Wk", weekly_left, WEEKLY)),
             badge(*meter("Ctx", context_left, CONTEXT)),
             git_badge(cwd),
-            model_badge(name, effort),
+            model_badge(name, effort, fast),
         ],
     }
 

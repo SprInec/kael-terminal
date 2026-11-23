@@ -16,5 +16,5 @@ sidebar_width_percent = 40
 status_line_provider = { server = "ada-usage-statusline", tool = "statusline" }
 
 [mcp_servers.ada-usage-statusline]
-command = "python3"
+command = @@ADA_PYTHON@@
 args = ["-u", @@ADA_SCRIPT@@]
