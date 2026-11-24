@@ -136,7 +136,7 @@ def config_files(headless, tabby_modules):
         "yazi/yazi.toml": XDG_CONFIG / "yazi/yazi.toml",
         "btop/btop.conf": XDG_CONFIG / "btop/btop.conf",
         "atuin/config.toml": ATUIN / "config.toml",
-        "glow.yml": XDG_CONFIG / "glow/glow.yml",
+        "glow/glow.yml": XDG_CONFIG / "glow/glow.yml",
         "vim/vimrc": HOME / ".vimrc",
     }
     if not (XDG_CONFIG / "nvim/init.lua").exists():
