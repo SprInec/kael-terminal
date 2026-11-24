@@ -2,13 +2,13 @@
 
 # kael-terminal
 
-[![MIT license](https://img.shields.io/badge/License-MIT-26734D?style=flat-square)](LICENSE) [![Linux support for Ubuntu and Debian](https://img.shields.io/badge/Linux-Ubuntu%20%2B%20Debian-355E8D?style=flat-square)](#quick-start) [![Builds for x86_64 and aarch64](https://img.shields.io/badge/Arch-x86__64%20%2B%20aarch64-635B9A?style=flat-square)](#quick-start)
-
-A terminal setup for Linux workstations and servers. Zsh and Starship give you a consistent prompt and shortcuts, a customized tmux keeps work sessions running, and a set of CLI tools covers browsing, searching, editing, and task management. The desktop setup adds Tabby, fonts, and Sixel image previews.
-
 [简体中文](README.md) · **English**
 
+[![MIT license](https://img.shields.io/badge/License-MIT-26734D?style=flat-square)](LICENSE) [![Linux support for Ubuntu and Debian](https://img.shields.io/badge/Linux-Ubuntu%20%2B%20Debian-355E8D?style=flat-square)](#quick-start) [![Builds for x86_64 and aarch64](https://img.shields.io/badge/Arch-x86__64%20%2B%20aarch64-635B9A?style=flat-square)](#quick-start)
+
 [Quick start](#quick-start) · [Everyday tools](#everyday-tools) · [Work sessions](#work-sessions) · [Customize and roll back](#customize-and-roll-back) · [License](#license)
+
+A terminal setup for Linux workstations and servers. Zsh and Starship give you a consistent prompt and shortcuts, a customized tmux keeps work sessions running, and a set of CLI tools covers browsing, searching, editing, and task management. The desktop setup adds Tabby, fonts, and Sixel image previews.
 
 </div>
 
