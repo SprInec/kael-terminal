@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/border-glow.h
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,118 @@
 +/* Local border animation. Pure helpers shared with the geometry tests. */
 +#ifndef BORDER_GLOW_H
 +#define BORDER_GLOW_H
@@ -10,9 +10,20 @@
 +	int left, right, top, bottom;
 +	unsigned int period;
 +	uint64_t now;
++	int open_bottom;
 +};
 +
-+/* Clockwise distance from the top-left corner, or -1 off the frame. */
++static inline int
++border_glow_length(const struct border_glow *g)
++{
++	int width = g->right - g->left, height = g->bottom - g->top;
++
++	if (g->open_bottom)
++		return (width + 2 * height + 1);
++	return (2 * (width + height));
++}
++
++/* Clockwise distance from the start of the border, or -1 off it. */
 +static inline int
 +border_glow_position(const struct border_glow *g, int x, int y)
 +{
@@ -21,6 +32,15 @@
 +	if (width <= 0 || height <= 0 || x < g->left || x > g->right ||
 +	    y < g->top || y > g->bottom)
 +		return (-1);
++	if (g->open_bottom) {
++		if (x == g->left)
++			return (g->bottom - y);
++		if (y == g->top)
++			return (height + x - g->left);
++		if (x == g->right)
++			return (height + width + y - g->top);
++		return (-1);
++	}
 +	if (y == g->top)
 +		return (x - g->left);
 +	if (x == g->right)
@@ -54,7 +74,7 @@
 +border_glow_rgb(const struct border_glow *g, int x, int y, int rgb)
 +{
 +	int position = border_glow_position(g, x, y);
-+	int perimeter = 2 * (g->right - g->left + g->bottom - g->top);
++	int perimeter = border_glow_length(g);
 +	int channel, value, result = 0;
 +	double tail, strength, base, peak;
 +
@@ -101,7 +121,17 @@
 +#endif
 --- a/format.c
 +++ b/format.c
-@@ -2680,7 +2680,7 @@
+@@ -1282,7 +1282,8 @@
+ 
+ 	status = window_pane_get_pane_status(wp);
+ 	if (format_pane_is_separate(wp))
+-		flag = (wp->yoff + (int)wp->sy >= (int)w->sy - 1);
++		flag = (wp->yoff + (int)wp->sy >= (int)w->sy -
++		    window_border_has_bottom(w));
+ 	else if (status == PANE_STATUS_BOTTOM)
+ 		flag = (wp->yoff + (int)wp->sy == (int)w->sy - 1);
+ 	else
+@@ -2680,7 +2681,7 @@
  	char	*value = NULL;
  
  	if (ft->wp != NULL)
@@ -110,7 +140,7 @@
  	return (value);
  }
  
-@@ -2689,7 +2689,7 @@
+@@ -2689,7 +2690,7 @@
  format_cb_pane_pb_state(struct format_tree *ft)
  {
  	if (ft->wp != NULL) {
@@ -254,9 +284,447 @@
  			input_fire_command_event(wp, "pane-command-finished");
  		}
  		if (gl != NULL) {
+--- a/layout.c
++++ b/layout.c
+@@ -423,10 +423,18 @@
+ }
+ 
+ /*
+- * Cells taken by separate borders: the left or top border, and also the right
+- * or bottom border on the window edge.
++ * A compact layout uses the existing separator as both horizontal edges.
++ * Only panes at the top of the layout need an extra row above them.
+  */
+ static u_int
++layout_separate_top(struct window *w, struct layout_cell *root,
++    struct layout_cell *lc)
++{
++	return (!window_border_is_compact(w) || layout_cell_is_top(root, lc));
++}
++
++/* Extra cells taken by separate borders beyond the layout separators. */
++static u_int
+ layout_separate_borders(struct window *w, struct layout_cell *root,
+     struct layout_cell *lc, enum layout_type type)
+ {
+@@ -435,7 +443,8 @@
+ 		return (0);
+ 	if (type == LAYOUT_LEFTRIGHT)
+ 		return (1 + layout_cell_is_right(root, lc));
+-	return (1 + layout_cell_is_bottom(root, lc));
++	return (layout_separate_top(w, root, lc) +
++	    (layout_cell_is_bottom(root, lc) && window_border_has_bottom(w)));
+ }
+ 
+ /* Get the full layout root while the window is zoomed. */
+@@ -648,7 +657,7 @@
+ 	return (0);
+ }
+ 
+-/* Leave room for separate borders: L/T always, R/B on the window edge. */
++/* Leave room for separate pane borders. */
+ void
+ layout_apply_pane_border_type(struct window *w, struct layout_cell *root,
+     struct layout_cell *lc, int *xoff, int *yoff, u_int *sx, u_int *sy)
+@@ -664,7 +673,7 @@
+ 		*sx -= bx;
+ 	}
+ 	if (by != 0 && *sy >= by + PANE_MINIMUM) {
+-		(*yoff)++;
++		*yoff += layout_separate_top(w, root, lc);
+ 		*sy -= by;
+ 	}
+ }
+@@ -1590,7 +1599,9 @@
+ 			return (0);
+ 		break;
+ 	case LAYOUT_TOPBOTTOM:
+-		if (borders != 0)
++		if (window_border_is_compact(w))
++			minimum = PANE_MINIMUM * 2 + 1 + borders;
++		else if (borders != 0)
+ 			minimum = PANE_MINIMUM * 2 + 2 + borders;
+ 		else if (layout_add_horizontal_border(root, lc, status))
+ 			minimum = PANE_MINIMUM * 2 + 2;
+@@ -1612,7 +1623,7 @@
+     int before, enum layout_type type, u_int *size1, u_int *size2,
+     u_int *saved_size)
+ {
+-	u_int		 s1, s2, ss, min1, min2, borders;
++	u_int		 s1, s2, ss, min1, min2, borders, top, bottom;
+ 	u_int		 sx = lc->g.sx, sy = lc->g.sy;
+ 
+ 	if (type == LAYOUT_LEFTRIGHT)
+@@ -1629,7 +1640,16 @@
+ 	min1 = PANE_MINIMUM;
+ 	min2 = PANE_MINIMUM;
+ 	borders = layout_separate_borders(w, w->layout_root, lc, type);
+-	if (borders != 0) {
++	if (type == LAYOUT_TOPBOTTOM && window_border_is_compact(w)) {
++		top = layout_separate_top(w, w->layout_root, lc);
++		bottom = borders - top;
++		min1 += top;
++		min2 += bottom;
++		if (size >= 0 && before)
++			s2 = ss - size - 1 - top;
++		else if (size >= 0)
++			s2 = size + bottom;
++	} else if (borders != 0) {
+ 		if (type == LAYOUT_LEFTRIGHT &&
+ 		    w->sb == PANE_SCROLLBARS_ALWAYS) {
+ 			min1 += layout_cell_scrollbar_size(w, lc);
+--- a/options-table.c
++++ b/options-table.c
+@@ -1703,6 +1703,21 @@
+ 	  .text = "Index of the first pane in each window."
+ 	},
+ 
++	{ .name = "pane-border-bottom",
++	  .type = OPTIONS_TABLE_FLAG,
++	  .scope = OPTIONS_TABLE_WINDOW,
++	  .default_num = 1,
++	  .text = "Draw the outer bottom edge of separate tiled pane borders. "
++		  "A pane status line on the bottom still needs its row."
++	},
++
++	{ .name = "pane-border-compact",
++	  .type = OPTIONS_TABLE_FLAG,
++	  .scope = OPTIONS_TABLE_WINDOW,
++	  .default_num = 0,
++	  .text = "Share one row between vertically adjacent separate pane borders."
++	},
++
+ 	{ .name = "pane-border-format",
+ 	  .type = OPTIONS_TABLE_STRING,
+ 	  .scope = OPTIONS_TABLE_WINDOW|OPTIONS_TABLE_PANE,
+--- a/options.c
++++ b/options.c
+@@ -1439,6 +1439,8 @@
+ 	    strcmp(name, "side-status-width") == 0 ||
+ 	    strcmp(name, "pane-border-indicators") == 0 ||
+ 	    strcmp(name, "pane-border-lines") == 0 ||
++	    strcmp(name, "pane-border-compact") == 0 ||
++	    strcmp(name, "pane-border-bottom") == 0 ||
+ 	    strcmp(name, "pane-border-status") == 0 ||
+ 	    strcmp(name, "pane-scrollbars") == 0 ||
+ 	    strcmp(name, "pane-scrollbars-timeout") == 0 ||
+@@ -1462,6 +1464,8 @@
+ 			colour_palette_from_option(&wp->palette, wp->options);
+ 	}
+ 	if (strcmp(name, "pane-border-status") == 0 ||
++	     strcmp(name, "pane-border-compact") == 0 ||
++	    strcmp(name, "pane-border-bottom") == 0 ||
+ 	    strcmp(name, "pane-scrollbars") == 0 ||
+ 	    strcmp(name, "pane-scrollbars-position") == 0 ||
+ 	    strcmp(name, "pane-border-type") == 0) {
+@@ -1471,7 +1475,12 @@
+ 			w->sb_pos = options_get_number(w->options,
+ 			    "pane-scrollbars-position");
+ 			if (strcmp(name, "pane-scrollbars") == 0 ||
+-			    strcmp(name, "pane-border-type") == 0)
++			    strcmp(name, "pane-border-type") == 0 ||
++			     strcmp(name, "pane-border-compact") == 0 ||
++			    strcmp(name, "pane-border-bottom") == 0 ||
++			    (strcmp(name, "pane-border-status") == 0 &&
++			    window_border_type_is_separate(w) &&
++			    !options_get_number(w->options, "pane-border-bottom")))
+ 				options_fit_window(w);
+ 			else if (layout_fix_panes(w, NULL))
+ 				events_fire_window("window-layout-changed", w);
+--- a/regress/pane-border-type.sh
++++ b/regress/pane-border-type.sh
+@@ -156,6 +156,58 @@
+ bot_top_border=$(pane_fmt "$p1" '#{e|-:#{pane_top},1}')
+ must_equal "$top_bottom_border" "12"
+ must_equal "$bot_top_border" "13"
++
++# Reclaim the outer bottom row without changing the inner double border.
++$TMUX set -w -t geo:0 pane-border-status top || fail "set top status failed"
++must_equal "$(pane_fmt "$p1" '#{pane_bottom}:#{window_height}')" "22:24"
++$TMUX set -w -t geo:0 pane-border-bottom off || fail "hide bottom border failed"
++must_equal "$(pane_fmt "$p0" '#{pane_bottom}:#{pane_at_bottom}')" "11:0"
++must_equal "$(pane_fmt "$p1" '#{pane_top}:#{pane_bottom}:#{pane_at_bottom}')" "14:23:1"
++$TMUX resize-pane -Z -t "$p1" || fail "zoom failed"
++must_equal "$(pane_fmt "$p1" '#{pane_top}:#{pane_bottom}')" "1:23"
++$TMUX resize-pane -Z -t "$p1" || fail "unzoom failed"
++
++# A bottom pane title still needs its row.
++$TMUX set -w -t geo:0 pane-border-status bottom || fail "set bottom status failed"
++must_equal "$(pane_fmt "$p1" '#{pane_bottom}:#{pane_at_bottom}')" "22:1"
++$TMUX set -w -t geo:0 pane-border-status top || fail "restore top status failed"
++must_equal "$(pane_fmt "$p1" '#{pane_bottom}')" "23"
++$TMUX set -wu -t geo:0 pane-border-bottom || fail "restore bottom border failed"
++must_equal "$(pane_fmt "$p1" '#{pane_bottom}')" "22"
++$TMUX kill-server
++
++# ---------------------------------------------------------------------------
++# Compact frames share a horizontal border row, including a titled edge.
++# ---------------------------------------------------------------------------
++$TMUX new-session -d -s compact -x 80 -y 24 'cat' || exit 1
++$TMUX set -g status off &&
++$TMUX set -w pane-border-type separate &&
++$TMUX set -w pane-border-status top &&
++$TMUX set -w pane-border-compact on || fail "enable compact frames failed"
++a=$(pane_fmt compact:0.0 '#{pane_id}')
++b=$($TMUX split-window -v -l 7 -P -F '#{pane_id}' 'cat') ||
++	fail "compact split failed"
++must_equal "$(pane_fmt "$a" '#{pane_top}:#{pane_bottom}')" "1:14"
++must_equal "$(pane_fmt "$b" '#{pane_top}:#{pane_height}:#{pane_bottom}')" "16:7:22"
++$TMUX select-pane -t "$a" -D || fail "navigate down across shared row failed"
++must_equal "$(pane_fmt compact:0 '#{pane_id}')" "$b"
++$TMUX select-pane -t "$b" -U || fail "navigate up across shared row failed"
++must_equal "$(pane_fmt compact:0 '#{pane_id}')" "$a"
++
++c=$($TMUX split-window -v -b -l 3 -t "$b" -P -F '#{pane_id}' 'cat') ||
++	fail "compact split -b failed"
++must_equal "$(pane_fmt "$c" '#{pane_top}:#{pane_height}')" "16:3"
++must_equal "$(pane_fmt "$b" '#{pane_top}')" "20"
++$TMUX set -w pane-border-compact off || fail "restore two-row frames failed"
++must_equal "$(pane_fmt "$c" '#{pane_top}')" "17"
++$TMUX set -w pane-border-compact on || fail "re-enable compact frames failed"
++$TMUX resize-pane -y 1 -t "$c" || fail "resize compact pane failed"
++must_equal "$(pane_fmt "$c" '#{pane_height}')" "1"
++$TMUX resize-pane -Z -t "$c" || fail "zoom compact pane failed"
++must_equal "$(pane_fmt "$c" '#{pane_top}:#{pane_bottom}')" "1:22"
++$TMUX resize-pane -Z -t "$c" || fail "unzoom compact pane failed"
++$TMUX resize-window -y 4 || fail "shrink compact window failed"
++must_equal "$(pane_fmt "$a" '#{window_height}')" "7"
+ $TMUX kill-server
+ 
+ # ---------------------------------------------------------------------------
+--- a/regress/screen-redraw-border-junctions.sh
++++ b/regress/screen-redraw-border-junctions.sh
+@@ -159,6 +159,43 @@
+             run(inner, "select-layout", "tiled")
+         for status in ("off", "top", "bottom"):
+             check_junctions(status)
++        # Open-bottom side strokes stop before the tmux status row.
++        run(inner, "new-window", "exec sleep 1000")
++        run(inner, "set", "pane-border-type", "separate")
++        run(inner, "set", "pane-border-lines", "single")
++        run(inner, "set", "pane-border-status", "top")
++        run(inner, "set", "pane-border-bottom", "off")
++        run(inner, "set", "status", "on")
++        run(inner, "set", "status-left", "BAR ")
++        run(inner, "resize-window", "-x80", "-y23")
++        run(inner, "split-window", "-h", "exec sleep 1000")
++        columns = []
++        for pane in run(inner, "list-panes", "-F",
++                "#{pane_left} #{pane_right}").splitlines():
++            left, right = map(int, pane.split())
++            columns.extend((left - 1, right + 1))
++
++        def bottom_edges_match(edge_glyphs):
++            grid = capture()
++            return (all(grid.get((x, 22), ("",))[0] in edge_glyphs
++                        for x in columns) and
++                    "".join(grid.get((x, 23), ("",))[0]
++                            for x in range(3)) == "BAR")
++
++        wait(lambda: bottom_edges_match("╵"))
++
++        run(inner, "set", "status-position", "top")
++
++        def top_status_keeps_full_strokes():
++            grid = capture()
++            return (all(grid.get((x, 23), ("",))[0] == "│" for x in columns)
++                    and "".join(grid.get((x, 0), ("",))[0]
++                                for x in range(3)) == "BAR")
++
++        wait(top_status_keeps_full_strokes)
++        run(inner, "set", "status-position", "bottom")
++        run(inner, "set", "pane-border-bottom", "on")
++        wait(lambda: bottom_edges_match("└┘"))
+     finally:
+         for server in (outer, inner):
+             run(server, "kill-server", check=False)
 --- a/screen-redraw.c
 +++ b/screen-redraw.c
-@@ -1433,6 +1433,9 @@
+@@ -87,6 +87,7 @@
+ 
+ /* Span flags. */
+ #define REDRAW_BORDER_IS_ARROW 0x1
++#define REDRAW_BORDER_BOTTOM_END 0x10
+ #define REDRAW_SCROLLBAR_LEFT 0x2
+ #define REDRAW_SCROLLBAR_RIGHT 0x4
+ #define REDRAW_SCROLLBAR_OVERLAY 0x8
+@@ -110,9 +111,24 @@
+ #define REDRAW_START_ISOLATE "\342\201\246"
+ #define REDRAW_END_ISOLATE "\342\201\251"
+ 
++#define REDRAW_FRAME_FLOATING 0x4
++
++enum redraw_frame_side {
++	REDRAW_FRAME_UPPER,
++	REDRAW_FRAME_LOWER,
++	REDRAW_FRAME_VERTICAL,
++	REDRAW_FRAME_SIDES
++};
++
++struct redraw_frame_edge {
++	struct window_pane	*wp;
++	int			 mask;
++};
++
+ /* Data for a span. */
+ struct redraw_span_data {
+ 	enum redraw_span_type	type;
++	struct redraw_frame_edge frame[REDRAW_FRAME_SIDES];
+ 
+ 	union {
+ 		struct {
+@@ -257,6 +273,7 @@
+ 
+ 	int					 ind;
+ 	int					 border_type;
++	int					 compact;
+ 
+ 	struct redraw_build_cell		*cells;
+ };
+@@ -278,6 +295,7 @@
+ #define REDRAW_ISOLATES 0x1
+ #define REDRAW_DEFAULT_SET 0x2
+ #define REDRAW_STATUS_TOP 0x4
++#define REDRAW_TABBY_FRAME 0x8
+ };
+ 
+ /* Make redraw flags into a string. */
+@@ -337,6 +355,7 @@
+ 
+ 	bctx->ind = options_get_number(w->options, "pane-border-indicators");
+ 	bctx->border_type = options_get_number(w->options, "pane-border-type");
++	bctx->compact = window_border_is_compact(w);
+ }
+ 
+ /* Return a cell. */
+@@ -567,6 +586,7 @@
+ 	struct redraw_build_cell	*bc;
+ 	u_int				 x, y;
+ 	int				 reset = 0, side_owner, above, left;
++	struct redraw_frame_edge	*edge = NULL;
+ 
+ 	if (!redraw_window_to_scene(bctx, wx, wy, &x, &y))
+ 		return;
+@@ -584,7 +604,8 @@
+ 		if (bc->data.type == REDRAW_SPAN_EMPTY ||
+ 		    bc->data.type == REDRAW_SPAN_OUTSIDE)
+ 			reset = 1;
+-		else if (bc->data.type != REDRAW_SPAN_BORDER)
++		else if (bc->data.type != REDRAW_SPAN_BORDER &&
++		    !(bctx->compact && bc->data.type == REDRAW_SPAN_STATUS))
+ 			return;
+ 	} else {
+ 		if (bc->data.type != REDRAW_SPAN_BORDER ||
+@@ -597,6 +618,39 @@
+ 	}
+ 
+ 	/*
++	 * Save both outlines before merging their characters for terminals
++	 * that display a shared divider. A pane title retains both outlines.
++	 */
++	if (bctx->compact) {
++		if (top_owner)
++			edge = &bc->data.frame[REDRAW_FRAME_UPPER];
++		else if (bottom_owner)
++			edge = &bc->data.frame[REDRAW_FRAME_LOWER];
++		else if (mask == (REDRAW_BORDER_U|REDRAW_BORDER_D) ||
++		    (!floating && mask == REDRAW_BORDER_U &&
++		    wy == (int)bctx->w->sy - 1 &&
++		    !window_border_has_bottom(bctx->w)) ||
++		    (floating && (mask == REDRAW_BORDER_U ||
++		    mask == REDRAW_BORDER_D) &&
++		    bc->data.frame[REDRAW_FRAME_UPPER].wp == NULL &&
++		    bc->data.frame[REDRAW_FRAME_LOWER].wp == NULL))
++			edge = &bc->data.frame[REDRAW_FRAME_VERTICAL];
++
++		if (edge != NULL) {
++			edge->wp = wp;
++			edge->mask = mask;
++			if (edge == &bc->data.frame[REDRAW_FRAME_VERTICAL]) {
++				edge->mask |= (wx < wp->xoff ?
++				    REDRAW_BORDER_R : REDRAW_BORDER_L);
++				if (floating)
++					edge->mask |= REDRAW_BORDER_U|REDRAW_BORDER_D;
++			}
++		}
++		if (bc->data.type == REDRAW_SPAN_STATUS)
++			return;
++	}
++
++	/*
+ 	 * A corner cell can be shared by four tiled panes, two on each side,
+ 	 * and only one pane is kept for each side. So that none is lost
+ 	 * whatever order panes are marked in, a pane keeps its corner only on
+@@ -635,6 +689,10 @@
+ 		}
+ 	}
+ 
++	if (mask == REDRAW_BORDER_U && !floating &&
++	    bctx->border_type != PANE_BORDER_TYPE_JOINED &&
++	    wy == (int)bctx->w->sy - 1 && !window_border_has_bottom(bctx->w))
++		bc->data.b.flags |= REDRAW_BORDER_BOTTOM_END;
+ 	mask |= bc->data.b.cell_mask;
+ 	bc->data.b.cell_mask = mask;
+ 	bc->data.b.cell_type = redraw_get_cell_type(mask);
+@@ -769,6 +827,12 @@
+ 	} else {
+ 		mark_right = (right <= (int)bctx->w->sx);
+ 		mark_bottom = (bottom <= (int)bctx->w->sy);
++		if (bctx->border_type != PANE_BORDER_TYPE_JOINED &&
++		    bottom >= (int)bctx->w->sy &&
++		    !window_border_has_bottom(bctx->w)) {
++			mark_bottom = 0;
++			bottom = bctx->w->sy - 1;
++		}
+ 		if (pane_status == PANE_STATUS_TOP && bottom < (int)bctx->w->sy)
+ 			mark_bottom = 0;
+ 		else if (pane_status == PANE_STATUS_BOTTOM)
+@@ -934,9 +998,17 @@
+ redraw_compare_data(struct redraw_build_cell *a, struct redraw_build_cell *b)
+ {
+ 	struct redraw_span_data	*ad = &a->data, *bd = &b->data;
++	u_int			 side;
+ 
+ 	if (ad->type != bd->type)
+ 		return (0);
++	if (ad->type == REDRAW_SPAN_BORDER || ad->type == REDRAW_SPAN_STATUS) {
++		for (side = 0; side < REDRAW_FRAME_SIDES; side++) {
++			if (ad->frame[side].wp != bd->frame[side].wp ||
++			    ad->frame[side].mask != bd->frame[side].mask)
++				return (0);
++		}
++	}
+ 
+ 	switch (ad->type) {
+ 	case REDRAW_SPAN_PANE:
+@@ -1422,6 +1494,26 @@
+ 	gc->attr |= GRID_ATTR_CHARSET;
+ }
+ 
++/* Shorten both vertical strokes at the open bottom of a pane. */
++static void
++redraw_draw_border_bottom_end(struct client *c, enum pane_lines lines,
++    struct grid_cell *gc)
++{
++	static const struct utf8_data light = { "\342\225\265", 3, 3, 1 };
++	static const struct utf8_data heavy = { "\342\225\271", 3, 3, 1 };
++
++	if (lines == PANE_LINES_NUMBER)
++		return;
++	gc->attr &= ~GRID_ATTR_CHARSET;
++	if ((c->flags & CLIENT_UTF8) && lines == PANE_LINES_HEAVY)
++		utf8_copy(&gc->data, &heavy);
++	else if ((c->flags & CLIENT_UTF8) &&
++	    (lines == PANE_LINES_SINGLE || lines == PANE_LINES_ROUNDED))
++		utf8_copy(&gc->data, &light);
++	else
++		utf8_set(&gc->data, ' ');
++}
++
+ /* Draw a border span. */
+ static void
+ redraw_draw_border_span(struct redraw_draw_ctx *dctx,
+@@ -1433,6 +1525,9 @@
  	struct window		*w = scene->w;
  	struct window_pane	*wp = NULL;
  	struct grid_cell	 gc;
@@ -266,7 +734,33 @@
  	enum pane_lines		 pane_lines;
  	u_int			 i, cell_type;
  	int			 isolates = 0, blank = 0;
-@@ -1481,8 +1484,27 @@
+@@ -1462,7 +1557,8 @@
+ 		}
+ 	} else {
+ 		window_pane_get_border_style(wp, c, &gc);
+-		window_pane_get_border_cell(wp, cell_type, &gc);
++		pane_lines = window_pane_get_pane_lines(wp);
++		window_get_border_cell(wp, pane_lines, cell_type, &gc);
+ 	}
+ 
+ 	if (!blank &&
+@@ -1473,7 +1569,14 @@
+ 	if (blank) {
+ 		gc.attr &= ~GRID_ATTR_CHARSET;
+ 		utf8_set(&gc.data, ' ');
+-	} else
++	} else if (span->data.type == REDRAW_SPAN_BORDER &&
++	    span->data.b.cell_mask == REDRAW_BORDER_U &&
++	    (span->data.b.flags & REDRAW_BORDER_BOTTOM_END) &&
++	    (~span->data.b.flags & REDRAW_BORDER_IS_ARROW) &&
++	    (~dctx->flags & REDRAW_STATUS_TOP) && dctx->status_lines != 0 &&
++	    y + 1 == tty->sy - dctx->status_lines)
++		redraw_draw_border_bottom_end(c, pane_lines, &gc);
++	else
+ 		redraw_draw_border_arrow(dctx, span, &gc);
+ 
+ 	if (cell_type == CELL_UD && (dctx->flags & REDRAW_ISOLATES))
+@@ -1481,8 +1584,27 @@
  	tty_cursor(tty, x, y);
  	if (isolates)
  		tty_puts(tty, REDRAW_END_ISOLATE);
@@ -296,7 +790,149 @@
  	if (isolates)
  		tty_puts(tty, REDRAW_START_ISOLATE);
  }
-@@ -2064,7 +2086,10 @@
+@@ -1602,6 +1724,98 @@
+ 	tty_draw_line(tty, s, px, span->data.m.py, n, x, y, NULL);
+ }
+ 
++/*
++ * Annotate the cells just drawn with the two independent edges. Tabby keeps
++ * these on its buffer cells, so an overwrite clears the annotation. Other
++ * terminals use the ordinary box characters and title already written.
++ */
++static void
++redraw_send_frame(struct redraw_draw_ctx *dctx, struct redraw_span *span,
++    u_int x, u_int y, u_int width)
++{
++	struct client		*c = dctx->scene->c;
++	struct redraw_span_data	*data = &span->data;
++	struct window_pane	*wp;
++	struct grid_cell	 gc, cell;
++	struct border_glow	 glow;
++	enum pane_lines		 lines;
++	u_int			 mask[REDRAW_FRAME_SIDES] = { 0 };
++	int			 wx, wy, mode, percent, progress, glowing, colour;
++	int			 have_edge = 0, frame_flags = 0;
++	u_int			 side, i, count;
++	size_t			 size = 64 + REDRAW_FRAME_SIDES * (4 + 8 * width);
++	char			*message, *p;
++
++	for (side = 0; side < REDRAW_FRAME_SIDES; side++) {
++		wp = data->frame[side].wp;
++		if (wp == NULL || (dctx->border_type == PANE_BORDER_TYPE_SEPARATE_ACTIVE &&
++		    wp != dctx->active))
++			continue;
++		lines = window_pane_get_pane_lines(wp);
++		if (lines == PANE_LINES_SPACES || lines == PANE_LINES_NONE)
++			continue;
++		if (lines != PANE_LINES_SINGLE && lines != PANE_LINES_ROUNDED)
++			return;
++		mask[side] = data->frame[side].mask;
++		if (window_pane_is_floating(wp)) {
++			frame_flags |= REDRAW_FRAME_FLOATING;
++			/* A clipped horizontal edge has no corner stem. */
++			if (data->type == REDRAW_SPAN_BORDER &&
++			    side != REDRAW_FRAME_VERTICAL &&
++			    !(data->b.cell_mask & (REDRAW_BORDER_U|REDRAW_BORDER_D)))
++				mask[side] = REDRAW_BORDER_L|REDRAW_BORDER_R;
++		}
++		have_edge = 1;
++	}
++	if (!have_edge)
++		return;
++
++	mode = 0; /* Replace the fallback box glyph. */
++	if (data->type == REDRAW_SPAN_STATUS)
++		mode = window_pane_get_pane_status(data->st.wp) ==
++		    PANE_STATUS_TOP ? 1 : 3; /* Top or bottom title. */
++	else if (data->b.flags & REDRAW_BORDER_IS_ARROW)
++		mode = 2; /* Keep the indicator. */
++
++	message = xmalloc(size);
++	p = message + xsnprintf(message, size, "\033]7757;%u;%u;%u;%d",
++	    x, y, width, mode | frame_flags);
++	wx = (int)x - (int)dctx->side_left + dctx->scene->ox;
++	wy = y + dctx->scene->oy;
++	if (dctx->flags & REDRAW_STATUS_TOP)
++		wy -= dctx->status_lines;
++
++	for (side = 0; side < REDRAW_FRAME_SIDES; side++) {
++		*p++ = ';';
++		if (mask[side] == 0)
++			continue;
++		p += xsnprintf(p, 4, "%x:", mask[side]);
++		wp = data->frame[side].wp;
++		window_pane_get_border_style(wp, c, &gc);
++		if (wp == dctx->marked)
++			gc.attr ^= GRID_ATTR_REVERSE;
++		progress = window_pane_border_progress_init(wp, &glow, &percent);
++		glowing = !progress && window_pane_border_glow_init(wp, &glow);
++		count = (progress || glowing) ? width : 1;
++		for (i = 0; i < count; i++) {
++			memcpy(&cell, &gc, sizeof cell);
++			if (progress)
++				window_pane_border_progress_cell(&glow, percent,
++				    wx + i, wy, &cell);
++			else if (glowing)
++				window_pane_border_glow_cell(&glow, wx + i, wy,
++				    &cell);
++			colour = cell.fg;
++			if (cell.attr & GRID_ATTR_REVERSE)
++				colour = COLOUR_DEFAULT(cell.bg) ? 9 : cell.bg;
++			p += xsnprintf(p, 9, "%08x", (u_int)colour);
++		}
++	}
++	memcpy(p, "\033\\", 3);
++	tty_puts(&c->tty, message);
++	free(message);
++}
++
+ /* Draw a span. */
+ static void
+ redraw_draw_span(struct redraw_draw_ctx *dctx, struct redraw_span *span,
+@@ -1643,6 +1857,9 @@
+ 		redraw_draw_menu_span(dctx, span, x, y, width);
+ 		break;
+ 	}
++	if ((dctx->flags & REDRAW_TABBY_FRAME) &&
++	    (type == REDRAW_SPAN_BORDER || type == REDRAW_SPAN_STATUS))
++		redraw_send_frame(dctx, span, x, y, width);
+ }
+ 
+ /* Draw pane lines. */
+@@ -1871,6 +2088,9 @@
+ 		dctx->marked = marked_pane.wp;
+ 	dctx->active = w->active;
+ 	dctx->border_type = options_get_number(w->options, "pane-border-type");
++	if (window_border_is_compact(w) &&
++	    environ_find(c->environ, "TABBY_CONFIG_DIRECTORY") != NULL)
++		dctx->flags |= REDRAW_TABBY_FRAME;
+ 
+ 	lines = status_line_size(c);
+ 	if (options_get_number(oo, "status-position") == 0)
+@@ -2018,7 +2238,8 @@
+ 	if (flags & REDRAW_PANE_STATUS) {
+ 		redraw = 0;
+ 		TAILQ_FOREACH(loop, &scene->w->panes, entry) {
+-			if (REDRAW_IS_ALL(flags))
++			if (REDRAW_IS_ALL(flags) || ((flags & REDRAW_PANE_BORDER) &&
++			    (dctx.flags & REDRAW_TABBY_FRAME)))
+ 				loop->flags |= PANE_NEWSTATUS;
+ 			else
+ 				loop->flags &= ~PANE_NEWSTATUS;
+@@ -2027,10 +2248,10 @@
+ 			if (width == 0)
+ 				continue;
+ 
+-			if (window_make_pane_status(loop, c, width, first)) {
++			if (window_make_pane_status(loop, c, width, first))
+ 				loop->flags |= PANE_NEWSTATUS;
++			if (loop->flags & PANE_NEWSTATUS)
+ 				redraw = 1;
+-			}
+ 		}
+ 		if (!redraw && !REDRAW_IS_ALL(flags)) {
+ 			flags &= ~REDRAW_PANE_STATUS;
+@@ -2064,7 +2285,10 @@
  		    scene->sy);
  	}
  #endif
@@ -425,7 +1061,7 @@
  getversion(void)
  {
 -	return (TMUX_VERSION);
-+	return (TMUX_VERSION "-glow3-progress-auto");
++	return (TMUX_VERSION "-glow6-float-frames");
  }
  
  int
@@ -458,7 +1094,16 @@
  
  	struct grid_cell cached_gc;
  	struct grid_cell cached_active_gc;
-@@ -3878,6 +3891,19 @@
+@@ -3869,6 +3882,8 @@
+ enum pane_lines	 window_get_pane_lines(struct window *);
+ int		 window_get_pane_status(struct window *);
+ int		 window_border_type_is_separate(struct window *);
++int		 window_border_is_compact(struct window *);
++int		 window_border_has_bottom(struct window *);
+ int		 window_pane_get_pane_status(struct window_pane *);
+ struct style_range *window_pane_status_get_range(struct window_pane *, u_int,
+ 		     u_int);
+@@ -3878,6 +3893,19 @@
  		     int, int);
  
  /* window-border.c */
@@ -480,7 +1125,7 @@
  		     int, struct grid_cell *);
 --- a/window-border.c
 +++ b/window-border.c
-@@ -18,10 +18,343 @@
+@@ -18,10 +18,348 @@
  
  #include <sys/types.h>
  
@@ -714,6 +1359,7 @@
 +	glow->right = wp->xoff + wp->sx;
 +	glow->top = (int)wp->yoff - 1;
 +	glow->bottom = wp->yoff + wp->sy;
++	glow->open_bottom = 0;
 +	if (window_pane_scrollbar_visible(wp) &&
 +	    !window_pane_scrollbar_overlay(wp)) {
 +		scrollbar = wp->scrollbar_style.width + wp->scrollbar_style.pad;
@@ -731,6 +1377,9 @@
 +			glow->top = 0;
 +		if (glow->bottom >= (int)w->sy)
 +			glow->bottom = w->sy - 1;
++	} else if (glow->bottom >= (int)w->sy && !window_border_has_bottom(w)) {
++		glow->open_bottom = 1;
++		glow->bottom = w->sy - 1;
 +	}
 +	return (glow->right > glow->left && glow->bottom > glow->top);
 +}
@@ -759,12 +1408,13 @@
 +    int x, int y, struct grid_cell *gc)
 +{
 +	int position = border_glow_position(g, x, y);
-+	int perimeter = 2 * (g->right - g->left + g->bottom - g->top);
++	int perimeter = border_glow_length(g);
 +
 +	if (position < 0)
 +		return;
-+	/* The first straight cell starts the fill, so the corner closes the lap. */
-+	position = position == 0 ? perimeter - 1 : position - 1;
++	/* The first straight cell starts the fill on a closed border. */
++	if (!g->open_bottom)
++		position = position == 0 ? perimeter - 1 : position - 1;
 +	if (position < (int64_t)perimeter * percent / 100)
 +		gc->fg = COLOUR_FLAG_RGB | border_progress_rgb(g, position, perimeter);
 +	else
@@ -824,7 +1474,7 @@
  
  /* Set window fill cell. */
  static void
-@@ -187,6 +520,10 @@
+@@ -187,6 +525,10 @@
  {
  	struct window		*w = wp->window;
  	struct grid_cell	 gc;
@@ -835,7 +1485,7 @@
  	const char		*fmt;
  	struct format_tree	*ft;
  	struct style_line_entry	*sle = &wp->border_status_line;
-@@ -217,10 +554,18 @@
+@@ -217,10 +559,18 @@
  	border_type = options_get_number(w->options, "pane-border-type");
  	if (border_type == PANE_BORDER_TYPE_SEPARATE_ACTIVE && wp != w->active)
  		pane_lines = PANE_LINES_SPACES;
@@ -855,7 +1505,7 @@
  	}
  	gc.attr &= ~GRID_ATTR_CHARSET;
  
-@@ -229,6 +574,23 @@
+@@ -229,6 +579,23 @@
  	format_draw(&ctx, &gc, width, expanded, &sle->ranges, 0);
  
  	screen_write_stop(&ctx);
@@ -881,7 +1531,16 @@
  	free(sle->expanded);
 --- a/window.c
 +++ b/window.c
-@@ -1760,6 +1760,7 @@
+@@ -918,6 +918,8 @@
+ 			 * top borders as well.
+ 			 */
+ 			if (separate) {
++				if (y == w->sy && !window_border_has_bottom(w))
++					continue;
+ 				if ((int)x < xoff - 1 || x > xoff + sx)
+ 					continue;
+ 				if ((int)y < yoff - 1 || y > yoff + sy)
+@@ -1760,6 +1762,7 @@
  void
  window_pane_set_event(struct window_pane *wp)
  {
@@ -889,3 +1548,66 @@
  	setblocking(wp->fd, 0);
  
  	wp->event = bufferevent_new(wp->fd, window_pane_read_callback,
+@@ -2321,7 +2324,7 @@
+ 	w = wp->window;
+ 	status = window_get_pane_status(w);
+ 	gap = 1;
+-	if (window_border_type_is_separate(w))
++	if (window_border_type_is_separate(w) && !window_border_is_compact(w))
+ 		gap = 2;
+ 
+ 	list = NULL;
+@@ -2330,7 +2333,10 @@
+ 	window_pane_full_size_offset(wp, &xoff, &yoff, &sx, &sy);
+ 
+ 	edge = yoff;
+-	if (status == PANE_STATUS_TOP) {
++	if (window_border_is_compact(w)) {
++		if (edge == 1)
++			edge = (int)w->sy - window_border_has_bottom(w) + gap;
++	} else if (status == PANE_STATUS_TOP) {
+ 		if (edge == 1)
+ 			edge = (int)w->sy + 1;
+ 	} else if (status == PANE_STATUS_BOTTOM) {
+@@ -2385,7 +2391,7 @@
+ 	w = wp->window;
+ 	status = window_get_pane_status(w);
+ 	gap = 1;
+-	if (window_border_type_is_separate(w))
++	if (window_border_type_is_separate(w) && !window_border_is_compact(w))
+ 		gap = 2;
+ 
+ 	list = NULL;
+@@ -2394,7 +2400,10 @@
+ 	window_pane_full_size_offset(wp, &xoff, &yoff, &sx, &sy);
+ 
+ 	edge = yoff + (int)sy + gap;
+-	if (status == PANE_STATUS_TOP) {
++	if (window_border_is_compact(w)) {
++		if (edge == (int)w->sy - window_border_has_bottom(w) + gap)
++			edge = 1;
++	} else if (status == PANE_STATUS_TOP) {
+ 		if (edge >= (int)w->sy)
+ 			edge = 1;
+ 	} else if (status == PANE_STATUS_BOTTOM) {
+@@ -3037,6 +3046,20 @@
+ }
+ 
+ int
++window_border_is_compact(struct window *w)
++{
++	return (window_border_type_is_separate(w) &&
++	    options_get_number(w->options, "pane-border-compact"));
++}
++
++int
++window_border_has_bottom(struct window *w)
++{
++	return (options_get_number(w->options, "pane-border-bottom") ||
++	    window_get_pane_status(w) == PANE_STATUS_BOTTOM);
++}
++
++int
+ window_pane_get_pane_status(struct window_pane *wp)
+ {
+ 	struct window_mode_entry	*wme;

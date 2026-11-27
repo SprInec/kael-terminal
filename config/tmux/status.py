@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import termios
 import time
 import unicodedata
 
@@ -168,11 +169,15 @@ def cli_at_pid(pid):
     return ''
 
 
+def pane_process_groups(pane_pid):
+    # Skip the parenthesized command before reading the session ID and foreground PGID.
+    fields = (Path('/proc') / str(pane_pid) / 'stat').read_bytes().rpartition(b')')[2].split()
+    return int(fields[3]), int(fields[5])
+
+
 def foreground_cli(pane_pid):
     try:
-        # After the parenthesized comm field, stat lists the session and TTY's foreground PGID.
-        fields = (Path('/proc') / str(pane_pid) / 'stat').read_text().rpartition(')')[2].split()
-        session, foreground = int(fields[3]), int(fields[5])
+        session, foreground = pane_process_groups(pane_pid)
         if foreground <= 0:
             return ''
         brand = cli_at_pid(foreground)
@@ -193,6 +198,39 @@ def foreground_cli(pane_pid):
     except (OSError, ValueError, IndexError, subprocess.SubprocessError):
         pass
     return ''
+
+
+def adb_shell_command(pid):
+    argv = (Path('/proc') / str(pid) / 'cmdline').read_bytes().rstrip(b'\0').split(b'\0')
+    args = iter(argv[1:])
+    for arg in args:
+        if arg in (b'-s', b'-t', b'-H', b'-P', b'-L'):
+            next(args, None)
+        elif arg in (b'-a', b'-d', b'-e', b'--exit-on-write-error') or arg.startswith(
+            (b'-s', b'-t', b'-H', b'-P', b'wait-for-')
+        ):
+            continue
+        else:
+            return arg == b'shell'
+    return False
+
+
+def remote_terminal(pane_pid, tty, command):
+    try:
+        fd = os.open(tty, os.O_RDONLY | os.O_NOCTTY | os.O_NONBLOCK)
+        try:
+            local_flags = termios.tcgetattr(fd)[3]
+        finally:
+            os.close(fd)
+        # Interactive clients take over the local TTY in raw mode.
+        if local_flags & (termios.ICANON | termios.ECHO | termios.ISIG):
+            return False
+        if command == 'adb':
+            _, foreground = pane_process_groups(pane_pid)
+            return foreground > 0 and adb_shell_command(foreground)
+        return command in ('ssh', 'mosh-client', 'dbclient')
+    except (OSError, termios.error, ValueError, IndexError):
+        return False
 
 
 def render(path_string, columns, disk, session=''):
@@ -216,14 +254,14 @@ def render(path_string, columns, disk, session=''):
         disk_pct = str(round(usage.used * 100 / (usage.used + usage.free))) + '%'
     except (OSError, ZeroDivisionError):
         disk_pct = '?'
-    # Budget for the session chip, an active prefix indicator and window list.
+    # Budget for the session, an active prefix indicator and window list.
     session_limit = 6 if columns < 70 else 12
     budget = max(0, columns - min(session_limit, width(safe(session))) - 14 - max(12, columns // 5))
     base, muted, foreground = '#171b16', '#929e85', '#dce5d3'
     sage, green, amber, red = '#a5bb8b', '#b1e969', '#d7c183', '#e6a091'
 
-    def segment(text, colour=foreground, background=base):
-        return (text, f'#[fg={colour},bg={background},nobold,noreverse]{text}#[default]')
+    def segment(text, colour=foreground):
+        return (text, f'#[fg={colour},bg={base},nobold,noreverse]{text}#[default]')
 
     def resource(icon, label, value):
         colour = muted
@@ -236,7 +274,7 @@ def render(path_string, columns, disk, session=''):
 
     hostname = trim(safe(os.uname().nodename.split('.')[0]), 22)
     clock = time.strftime(' %m-%d   %H:%M' if columns >= 140 else ' %H:%M')
-    clock_part = segment(' ' + clock + ' ', sage, '#242e1e')
+    clock_part = segment(clock + ' ', sage)
     optional = [('cpu', resource('', 'CPU', cpu)),
                 ('memory', resource('', 'MEM', memory)),
                 ('disk', resource('', 'DSK', disk_pct)),
@@ -279,7 +317,10 @@ def render(path_string, columns, disk, session=''):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 4 and sys.argv[1] == '--foreground-cli':
+    if len(sys.argv) == 5 and sys.argv[1] == '--remote-terminal':
+        pane_pid, tty, command = sys.argv[2:]
+        print(int(remote_terminal(pane_pid, tty, command)))
+    elif len(sys.argv) == 4 and sys.argv[1] == '--foreground-cli':
         pane_pid, command = sys.argv[2:]
         if pane_pid.isascii() and pane_pid.isdecimal() and re.fullmatch(r'[\w.-]+', command, re.ASCII):
             brand = foreground_cli(int(pane_pid))

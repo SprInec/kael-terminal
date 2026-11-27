@@ -261,6 +261,7 @@ hotkeys:
     - Ctrl-Shift-X
   toggle-tabs: []
 terminal:
+  frontend: xterm-canvas
   searchOptions: {}
   colorScheme:
     name: Tabby Default
@@ -310,7 +311,7 @@ terminal:
     - '#3e999f'
     - '#ffffff'
   hideTabIndex: true
-  linePadding: 1
+  linePadding: 3
   background: colorScheme
   fontWeight: 500
   profile: local:custom:kael-zsh
@@ -322,8 +323,16 @@ terminal:
   sixel: true
 appearance:
   colorSchemeMode: auto
-  css: "terminaltab > .content {\n  margin: 6px 6px 4px !important;\n  align-content:\
-    \ end;\n}\n"
+  css: |
+    terminaltab > .content {
+      margin: 6px 6px 4px !important;
+      align-content: end;
+    }
+    terminaltab > .content:has(.xterm.kael-compact-frames) {
+      box-sizing: content-box;
+      margin-block: -1px !important;
+      padding-block-start: 6px;
+    }
 enableAnalytics: false
 enableWelcomeTab: false
 pluginBlacklist:

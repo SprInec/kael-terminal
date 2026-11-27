@@ -1,5 +1,10 @@
 'use strict';
 
+const { patchCanvasLightBorders } = require('./canvas-light-borders');
+const { patchCanvasUnderline } = require('./canvas-underline');
+const { findStatuses, withCanvasStatuses } = require('./canvas-status');
+const { attachPaneBorders, withCanvasPaneBorders } = require('./canvas-pane-borders');
+
 const leftCap = '\ue0b6';
 const rightCap = '\ue0b4';
 const barBackground = 0x171b16;
@@ -159,29 +164,178 @@ function withWebglCapsules(renderer, rectangles, glyphs, terminal, row, capsules
     }
 }
 
+function isOuterFrame(columns, edge) {
+    let found = false;
+    for (const frame of columns?.values() ?? []) {
+        if (frame.floating) continue;
+        if (frame.edges[1 - edge]) return false;
+        found ||= Boolean(frame.edges[edge]);
+    }
+    return found;
+}
+
+function prepareTopTitleCanvas(layer, dimensions, headroom, existing) {
+    const source = layer._ctx.canvas;
+    const parent = source.parentElement;
+    if (!parent) return undefined;
+    const canvas = existing ?? parent.ownerDocument.createElement('canvas');
+    const scale = dimensions.device.cell.height / dimensions.css.cell.height;
+    const height = dimensions.device.cell.height + headroom;
+    if (canvas.width !== source.width) canvas.width = source.width;
+    if (canvas.height !== height) canvas.height = height;
+    canvas.className = 'kael-pane-title-layer';
+    canvas.style.position = 'absolute';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.top = `-${headroom / scale}px`;
+    canvas.style.width = `${dimensions.css.canvas.width}px`;
+    canvas.style.height = `${height / scale}px`;
+    if (canvas.parentElement !== parent) parent.appendChild(canvas);
+    canvas.getContext('2d').clearRect(0, 0, source.width, height);
+    return canvas;
+}
+
+function raiseStatusRow(layer, dimensions, row, shift) {
+    const context = layer._ctx;
+    const { width, height } = context.canvas;
+    const top = row * dimensions.device.cell.height;
+    const rowHeight = height - top;
+    if (rowHeight <= shift) return;
+
+    context.save();
+    context.beginPath();
+    context.rect(0, top - shift, width, rowHeight);
+    context.clip();
+    context.globalCompositeOperation = 'copy';
+    context.drawImage(context.canvas, 0, top, width, rowHeight, 0, top - shift, width, rowHeight);
+    context.restore();
+
+    if (layer._alpha) {
+        context.clearRect(0, height - shift, width, shift);
+    } else {
+        context.save();
+        context.fillStyle = layer._themeService.colors.background.css;
+        context.fillRect(0, height - shift, width, shift);
+        context.restore();
+    }
+}
+
+function patchCanvasCursor(renderer) {
+    const layer = renderer._renderLayers?.find(layer => typeof layer._clearCursor === 'function');
+    if (typeof layer?._clearAll !== 'function') return;
+
+    const clearCursor = layer._clearCursor;
+    const clear = function () {
+        // A cursor on the trailing half of a wide glyph can paint pixels even
+        // though xterm records a cell width of zero and clears an empty rectangle.
+        if (this._state?.width === 0 && this._state.style) this._clearAll();
+        return clearCursor.call(this);
+    };
+    // Clear any marks left before the decorator attached, then reset cursor state.
+    layer._clearAll();
+    layer._clearCursor();
+    layer._clearCursor = clear;
+    return () => {
+        if (layer._clearCursor === clear) layer._clearCursor = clearCursor;
+    };
+}
+
 function attachCapsuleAlignment(frontend) {
     const terminal = frontend?.xterm;
     const service = terminal?._core?._renderService;
     if (!service?.setRenderer) return null;
+    const paneBorders = attachPaneBorders(terminal);
+    const mouse = terminal._core._mouseService;
+    const reportMouse = mouse?.getMouseReportCoords;
+    let shiftedFooter;
     let unpatchRenderer;
+
+    const reportShiftedMouse = function (...args) {
+        const position = reportMouse.apply(this, args);
+        if (!position || !shiftedFooter || position.row !== shiftedFooter.row - 1 ||
+            position.y < shiftedFooter.start) return position;
+        return { ...position, row: shiftedFooter.row, y: position.y + shiftedFooter.shift };
+    };
+    if (reportMouse) mouse.getMouseReportCoords = reportShiftedMouse;
 
     function patchRenderer(renderer) {
         unpatchRenderer?.();
         unpatchRenderer = undefined;
+        shiftedFooter = undefined;
+        terminal.element?.classList.remove('kael-compact-frames');
         if (!renderer?.renderRows) return;
+        const unpatchCursor = patchCanvasCursor(renderer);
         const original = renderer.renderRows;
+        let topTitleCanvas;
         const renderRows = function (first, last) {
-            const draw = () => original.call(this, first, last);
+            const drawNative = () => original.call(this, first, last);
             const row = terminal.rows - 1;
             const layer = this._renderLayers?.[0];
+            patchCanvasLightBorders(layer?._charAtlas);
+            patchCanvasUnderline(layer?._charAtlas);
             const rectangles = this._rectangleRenderer?.value;
             const glyphs = this._glyphRenderer?.value;
-            const canvas = last >= row && layer?._drawBackground && layer?._drawChars && layer?._ctx?.roundRect;
+            const canvas = layer?._drawBackground && layer?._drawChars && layer?._ctx?.roundRect;
             const webgl = rectangles?._addRectangle && glyphs?.render &&
                 glyphs._vertices?.attributes?.length === 11 * terminal.cols * terminal.rows;
             const dimensions = this.dimensions;
             if ((!canvas && !webgl) || !dimensions?.css?.cell?.height ||
-                !(dimensions?.device?.cell?.height >= 4) || !(dimensions.device.cell.width >= 1)) return draw();
+                !(dimensions?.device?.cell?.height >= 4) || !(dimensions.device.cell.width >= 1)) return drawNative();
+            let frames = canvas ? paneBorders?.visibleFrames(first, last) : undefined;
+            let statuses;
+            let topShift = 0;
+            let topHeadroom = 0;
+            let footerShift = 0;
+            if (canvas && layer._getFont) {
+                statuses = findStatuses(terminal, first, last);
+                const height = dimensions.device.cell.height;
+                const scale = height / dimensions.css.cell.height;
+                if (first === 0) {
+                    const outerTop = isOuterFrame(frames?.get(0), 1);
+                    const buffer = terminal.buffer.active;
+                    if (buffer.viewportY === buffer.baseY) {
+                        terminal.element?.classList.toggle('kael-compact-frames', outerTop);
+                    }
+                    const charTop = layer._deviceCharTop ?? 0;
+                    if (outerTop) {
+                        topShift = Math.min(Math.round(10 * scale), Math.floor(height / 2), charTop + Math.round(6 * scale));
+                        topHeadroom = Math.max(0, topShift - charTop);
+                    }
+                    if (topHeadroom) {
+                        topTitleCanvas = prepareTopTitleCanvas(layer, dimensions, topHeadroom, topTitleCanvas);
+                        if (!topTitleCanvas) topShift = charTop;
+                    } else {
+                        topTitleCanvas?.remove();
+                        topTitleCanvas = undefined;
+                    }
+                }
+                if (frames && row > 0 && last >= row - 1) {
+                    const status = statuses.get(row) ?? findStatuses(terminal, row, row).get(row);
+                    const border = frames.get(row - 1) ?? paneBorders.visibleFrames(row - 1, row - 1).get(row - 1);
+                    if (reportMouse && status?.alignToPane && isOuterFrame(border, 0)) {
+                        footerShift = Math.min(Math.round(7 * scale), Math.floor(height / 3));
+                    }
+                    if (shiftedFooter || footerShift) {
+                        // The footer overlaps the preceding row. Repaint both when either changes.
+                        first = Math.min(first, row - 1);
+                        last = row;
+                        frames = paneBorders.visibleFrames(first, last);
+                        statuses = findStatuses(terminal, first, last);
+                    }
+                    shiftedFooter = undefined;
+                }
+            }
+            const title = { shift: topShift, headroom: topHeadroom, canvas: topTitleCanvas };
+            const draw = frames ? () => withCanvasPaneBorders(layer, dimensions, frames, title, drawNative) : drawNative;
+            if (statuses?.size) {
+                const result = withCanvasStatuses(this, layer, statuses, draw);
+                if (footerShift) {
+                    raiseStatusRow(layer, dimensions, row, footerShift);
+                    const shift = Math.round(footerShift * dimensions.css.cell.height / dimensions.device.cell.height);
+                    shiftedFooter = { row, shift, start: Math.ceil(row * dimensions.css.cell.height - shift) };
+                }
+                return result;
+            }
+            if (last < row) return draw();
             const capsules = findCapsules(terminal, row);
             if (!capsules.length) return draw();
             if (canvas) return withCanvasCapsules(this, layer, row, capsules, draw);
@@ -189,6 +343,8 @@ function attachCapsuleAlignment(frontend) {
         };
         renderer.renderRows = renderRows;
         unpatchRenderer = () => {
+            unpatchCursor?.();
+            topTitleCanvas?.remove();
             if (renderer.renderRows === renderRows) renderer.renderRows = original;
         };
     }
@@ -204,6 +360,9 @@ function attachCapsuleAlignment(frontend) {
     return {
         dispose() {
             unpatchRenderer?.();
+            paneBorders?.dispose();
+            terminal.element?.classList.remove('kael-compact-frames');
+            if (mouse?.getMouseReportCoords === reportShiftedMouse) mouse.getMouseReportCoords = reportMouse;
             if (service.setRenderer === setAlignedRenderer) service.setRenderer = setRenderer;
         },
     };
