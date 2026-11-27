@@ -101,6 +101,8 @@ kael-tmux new-session -A -s dev
 
 在 Tabby 中运行 `kael-tmux` 会自动使用专用的 Sixel 套接字。需要普通会话时，从 tmux 外运行 `KAEL_TMUX_MODE=plain kael-tmux`。可通过 `KAEL_TMUX_BIN` 指定已有的兼容构建。
 
+本地的警告和闪电字形可用 [`libexec/build-terminal-icons.py`](libexec/build-terminal-icons.py) 生成。安装 Python `fonttools` 后，将用户字体目录传给脚本，再重开 Tabby。这两个单色轮廓会随终端前景色变化。
+
 ### Codex CLI
 
 首次使用时运行 `codex login`，或按组织提供的方式登录。进入要操作的项目目录后运行 `codex`，例如输入「解释这个仓库的安装流程，并指出主要入口文件」。

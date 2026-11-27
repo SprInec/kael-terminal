@@ -1,4 +1,5 @@
 "$schema" = 'https://starship.rs/config-schema.json'
+add_newline = false
 
 format = "$os$hostname$time$username$localip$shlvl$singularity$kubernetes$nats$directory$vcsh$fossil_branch$fossil_metrics$git_branch$git_commit$git_state$git_metrics${custom.git_host}$hg_branch$hg_state$pijul_channel$docker_context$package$bun$c$cmake$cobol$cpp$daml$dart$deno$dotnet$elixir$elm$erlang$fennel$fortran$gleam$golang$gradle$haskell$haxe$helm$java$julia$kotlin$lua$maven$mojo$nim$nodejs$ocaml$odin$opa$perl$php$pulumi$purescript$python$quarto$raku$rlang$red$ruby$rust$scala$solidity$swift$terraform$typst$vlang$vagrant$xmake$zig$buf$guix_shell$nix_shell$conda$pixi$meson$spack$memory_usage$aws$gcloud$openstack$azure$direnv$env_var$mise$crystal$custom$sudo$cmd_duration$jobs$battery$container$netns$shell$status$line_break$character"
 [aws]
@@ -8,11 +9,11 @@ symbol = "󸀅  "
 symbol = "󸀋  "
 
 [battery]
-full_symbol = "󰁹 "
-charging_symbol = "󰂄 "
-discharging_symbol = "󰂃 "
-unknown_symbol = "󰂑 "
-empty_symbol = "󰂎 "
+full_symbol = "󰁹  "
+charging_symbol = "󰂄  "
+discharging_symbol = "󰂃  "
+unknown_symbol = "󰂑  "
+empty_symbol = "󰂎  "
 
 [buf]
 symbol = "󸀍  "
@@ -88,7 +89,7 @@ symbol = " "
 format = 'on [$symbol$branch(:$remote_branch)]($style) '
 
 [git_commit]
-tag_symbol = '  '
+tag_symbol = '   '
 
 [golang]
 symbol = "󸀫  "
@@ -112,7 +113,7 @@ symbol = "󸀲  "
 symbol = "󸁃  "
 
 [hostname]
-ssh_symbol = " "
+ssh_symbol = "  "
 ssh_only = false
 format = '[$hostname]($style) '
 style = 'fg:#AFC3CE'
@@ -136,7 +137,7 @@ symbol = "󸀽  "
 symbol = "󸁂  "
 
 [memory_usage]
-symbol = "󰍛 "
+symbol = "󰍛  "
 
 [meson]
 symbol = "󸁄  "
@@ -247,7 +248,7 @@ symbol = "󸁕  "
 symbol = "󸁖  "
 
 [pijul_channel]
-symbol = " "
+symbol = "  "
 
 [pixi]
 symbol = "󸁘  "
@@ -281,7 +282,7 @@ symbol = "󸁤  "
 symbol = "󸁥  "
 
 [shlvl]
-symbol = "󰹍 "
+symbol = "󰹍  "
 
 [singularity]
 symbol = "󸁦  "
@@ -297,7 +298,7 @@ symbol = "󸁩  "
 # symbol = "⚠ "
 
 [sudo]
-symbol = " "
+symbol = "  "
 
 [swift]
 symbol = "󸁫  "

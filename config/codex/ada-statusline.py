@@ -26,7 +26,8 @@ TOOL = {
 PANEL = "#1D1D1D"
 BORDER = "#5D5D5D"
 MODEL_GOLD = "#EFCC88"
-FAST_GOLD = "#F6C85F"
+FAST_GOLD = "#C5A267"
+FAST_ICON = "\uf0e7"
 MODEL_EFFORT = "#A89A7F"
 WEEKLY = "#B6C7C1"
 CONTEXT = "#8BCCA8"
@@ -222,7 +223,7 @@ def git_badge(cwd):
 def model_badge(name, effort, fast):
     name_spans = [text(name, MODEL_GOLD)]
     if fast:
-        name_spans.insert(0, text("⚡", FAST_GOLD))
+        name_spans.insert(0, text(f"{FAST_ICON} ", FAST_GOLD))
 
     stops = EFFORT_GRADIENTS.get(effort)
     if stops is None:

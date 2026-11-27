@@ -318,7 +318,7 @@ terminal:
   paletteHarmonious: true
   rightClick: 'off'
   cursor: underline
-  font: Starship Prompt Icons,Liberation Mono,SauceCodePro Nerd Font Mono
+  font: Kael Starship Prompt Icons,Liberation Mono
   sixel: true
 appearance:
   colorSchemeMode: auto

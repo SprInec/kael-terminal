@@ -1,6 +1,7 @@
 /.git-kael/
 /*.bundle
 /.nvimlog
+/fonts/*/.uuid
 /.agents/
 /.aws/
 /.codex/

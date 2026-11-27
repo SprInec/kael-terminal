@@ -101,6 +101,8 @@ Run `tabby` to launch the desktop terminal with Zsh as its default profile. Pres
 
 Inside Tabby, `kael-tmux` automatically uses a dedicated Sixel socket. To start a regular session, run `KAEL_TMUX_MODE=plain kael-tmux` from outside tmux. Set `KAEL_TMUX_BIN` to point to an existing compatible build.
 
+To build the local warning and lightning glyphs, install Python `fonttools`, pass a user font directory to [`libexec/build-terminal-icons.py`](libexec/build-terminal-icons.py), and reopen Tabby. These monochrome outlines follow the terminal foreground color.
+
 ### Codex CLI
 
 Sign in on first use with `codex login` or your organization's sign-in method. Run `codex` from the project directory. As a first prompt, try “Explain how this repository installs its configuration and point me to the main entry points.”
