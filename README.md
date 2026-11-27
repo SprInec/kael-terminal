@@ -54,6 +54,7 @@ exec zsh -l
 | --- | --- | --- |
 | **ls** | `ll`、`la`、`l` | 查看详细列表、包含隐藏项的列表或多列列表 |
 | **eza** | `lt`、`lgit` | 查看两层目录树，或在列表里显示 Git 状态 |
+| **tree** | `tree -L 2 config` | 查看配置目录的两层文件结构 |
 | **fd** | `fd -e toml . config` | 按扩展名查找配置文件 |
 | **ripgrep** | `rg -n 'starship' config` | 搜索文件内容并显示行号 |
 | **bat** | `bat bootstrap.sh` | 带语法高亮和行号地阅读脚本 |

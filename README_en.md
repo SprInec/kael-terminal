@@ -54,6 +54,7 @@ Run `y config` to open **Yazi**. Browse with the arrow keys and quit with `q`. Z
 | --- | --- | --- |
 | **ls** | `ll`, `la`, `l` | Show a detailed listing, include hidden entries, or list in columns |
 | **eza** | `lt`, `lgit` | Show a two-level directory tree or a listing with Git status |
+| **tree** | `tree -L 2 config` | Show two levels of files and directories under `config` |
 | **fd** | `fd -e toml . config` | Find configuration files by extension |
 | **ripgrep** | `rg -n 'starship' config` | Search file contents and show line numbers |
 | **bat** | `bat bootstrap.sh` | Read a script with syntax highlighting and line numbers |

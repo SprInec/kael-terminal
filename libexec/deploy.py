@@ -258,7 +258,7 @@ def refresh_fonts(manifest):
 
 def doctor(headless):
     paths = os.pathsep.join((str(DATA / "bin"), str(HOME / ".local/bin"), os.environ.get("PATH", "")))
-    commands = "zsh tmux codex starship yazi ya zoxide vim fzf eza dust btop dooit atuin bat glow kael-tmux"
+    commands = "zsh tmux codex starship yazi ya zoxide vim fzf eza tree dust btop dooit atuin bat glow kael-tmux"
     if not headless:
         commands += " tabby"
     missing = []

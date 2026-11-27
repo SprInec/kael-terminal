@@ -34,7 +34,7 @@ fi
 packages=(ca-certificates curl git zsh zsh-autosuggestions zsh-syntax-highlighting vim
           python3 python3-venv build-essential autoconf automake bison pkg-config patch
           libevent-dev libncurses-dev zlib1g-dev libpng-dev ncurses-bin ncurses-term
-          file fd-find ripgrep jq unzip xz-utils)
+          file fd-find ripgrep jq tree unzip xz-utils)
 if (( desktop )); then
     packages+=(fontconfig fonts-liberation xclip wl-clipboard chafa)
 fi
