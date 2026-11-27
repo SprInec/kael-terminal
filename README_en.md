@@ -60,6 +60,7 @@ Run `y config` to open **Yazi**. Browse with the arrow keys and quit with `q`. Z
 | **bat** | `bat bootstrap.sh` | Read a script with syntax highlighting and line numbers |
 | **Glow** | `glow README_en.md` | Render Markdown in the terminal |
 | **Vim** | `vim README_en.md` | Press `i` to edit, then `Esc` and `:wq` followed by Enter to save and exit |
+| **Neovim** | `nvim .` | In LazyVim, press `Space e` for the file tree or `Space s g` to search the project |
 
 Use **jq** to extract fields from JSON. The command below lists Tabby's plugin dependencies.
 
@@ -113,7 +114,8 @@ The Ada status line shows the model, Git changes, and remaining weekly quota and
 ## Customize and roll back
 
 - **Personal Zsh settings** go in `${XDG_CONFIG_HOME:-$HOME/.config}/kael-terminal/local.zsh`. The installer maintains a loader block in `.zshrc`.
-- **Application configuration** lives in [`config/`](config/). Edit files there and rerun the relevant `./install.sh` command. Vim uses `~/.vimrc`, and an existing Neovim installation can use the bundled [`init.vim`](config/vim/init.vim).
+- **Application configuration** lives in [`config/`](config/). Edit files there and rerun the relevant `./install.sh` command. Vim uses `~/.vimrc`.
+- **Neovim** uses a separately installed Neovim 0.12 or later. Install Tree-sitter CLI 0.26.1 or later before the first launch, when LazyVim downloads its plugins. The setup includes a theme, status line, C/C++ and Python support, and a plugin lockfile. Existing custom LazyVim setups receive the status line extension. Older Neovim versions load `~/.vimrc` through the bundled configuration.
 - **Deployment backups** live in `${XDG_STATE_HOME:-$HOME/.local/state}/kael-terminal/backups/` and include any replaced Codex and Tabby configs. Credentials, task databases, shell history, and runtime caches are stored per device.
 
 ```sh

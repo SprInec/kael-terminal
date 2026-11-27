@@ -108,6 +108,41 @@ def tabby_dependencies():
     return json.loads((PLUGINS / "package.json").read_bytes())["dependencies"]
 
 
+def nvim_config_files():
+    nvim = XDG_CONFIG / "nvim"
+    init_lua = nvim / "init.lua"
+    init_vim = nvim / "init.vim"
+    lazy_config = nvim / "lua/config/lazy.lua"
+    extensions = ("lua/plugins/kael-statusline.lua", "lua/kael/statusline-icons.json")
+    mapping = {}
+
+    if init_lua.exists() or init_lua.is_symlink():
+        entry = init_lua.read_bytes() if init_lua.is_file() and not init_lua.is_symlink() else b""
+        lazy_setup = lazy_config.read_bytes() if lazy_config.is_file() else b""
+        local_profile = (entry == b'require("config.lazy")\n' and
+                         lazy_setup == (CONFIG / "nvim/lua/config/lazy.lua").read_bytes())
+        if not (entry.startswith(b"-- Managed by kael-terminal.\n") or local_profile):
+            if b"LazyVim/LazyVim" in lazy_setup:
+                return {f"nvim/{relative}": nvim / relative for relative in extensions}
+            return mapping
+        mapping["nvim/init.lua"] = init_lua
+    elif init_vim.exists() or init_vim.is_symlink():
+        if not init_vim.is_file() or init_vim.is_symlink():
+            return mapping
+        entry = init_vim.read_bytes()
+        if entry != (CONFIG / "vim/init.vim").read_bytes() and not entry.startswith(b'" Managed by kael-terminal.\n'):
+            return mapping
+        mapping["vim/kael-init.vim"] = init_vim
+        mapping["nvim/init.lua"] = nvim / "lua/kael/init.lua"
+    else:
+        mapping["nvim/init.lua"] = init_lua
+
+    for relative in ("lazy-lock.json", "lua/config/lazy.lua", "lua/config/options.lua",
+                     "lua/plugins/appearance.lua", "lua/plugins/editor.lua", *extensions):
+        mapping[f"nvim/{relative}"] = nvim / relative
+    return mapping
+
+
 def config_files(headless, tabby_modules):
     zsh = shutil.which("zsh") or "/usr/bin/zsh"
     tokens = {
@@ -141,8 +176,7 @@ def config_files(headless, tabby_modules):
         "glow/glow.yml": XDG_CONFIG / "glow/glow.yml",
         "vim/vimrc": HOME / ".vimrc",
     }
-    if not (XDG_CONFIG / "nvim/init.lua").exists():
-        mapping["vim/init.vim"] = XDG_CONFIG / "nvim/init.vim"
+    mapping.update(nvim_config_files())
     for name in ("config.py", "task_notes.py", "text_selection.py"):
         mapping[f"dooit/{name}"] = XDG_CONFIG / "dooit" / name
     if not headless:

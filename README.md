@@ -60,6 +60,7 @@ exec zsh -l
 | **bat** | `bat bootstrap.sh` | 带语法高亮和行号地阅读脚本 |
 | **Glow** | `glow README.md` | 在终端渲染 Markdown |
 | **Vim** | `vim README.md` | 按 `i` 编辑，按 `Esc` 后输入 `:wq` 并回车保存退出 |
+| **Neovim** | `nvim .` | 在 LazyVim 中按 `空格 e` 打开文件树，按 `空格 s g` 搜索项目 |
 
 用 **jq** 从 JSON 中提取所需字段。运行下面的命令可列出 Tabby 的插件依赖。
 
@@ -113,7 +114,8 @@ Ada 状态栏显示模型、Git 改动，以及可用的周额度和上下文余
 ## 自定义和回滚
 
 - **个人 Zsh 设置**写在 `${XDG_CONFIG_HOME:-$HOME/.config}/kael-terminal/local.zsh`。安装脚本会在 `.zshrc` 中维护加载片段。
-- **应用配置**集中在 [`config/`](config/)。在仓库中修改后，可重新运行相应的 `./install.sh` 命令。Vim 配置部署到 `~/.vimrc`，已有的 Neovim 也可加载随附的 [`init.vim`](config/vim/init.vim)。
+- **应用配置**集中在 [`config/`](config/)。在仓库中修改后，可重新运行相应的 `./install.sh` 命令。Vim 配置部署到 `~/.vimrc`。
+- **Neovim** 使用本机安装的 Neovim 0.12 或更新版本。准备好 Tree-sitter CLI 0.26.1 或更新版本，首次启动时 LazyVim 会下载插件。配置包含主题、状态栏、C/C++ 和 Python 支持，以及插件锁文件。已有的自定义 LazyVim 会接收状态栏扩展。较旧的 Neovim 在加载本项目的配置时会沿用 `~/.vimrc`。
 - **部署备份**位于 `${XDG_STATE_HOME:-$HOME/.local/state}/kael-terminal/backups/`，包含被更新的 Codex 和 Tabby 活动配置。登录凭据、任务数据库、命令历史和运行缓存存放在各设备本地。
 
 ```sh
