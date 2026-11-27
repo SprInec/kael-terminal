@@ -1,0 +1,242 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -231,7 +231,7 @@
+ 
+ [target."cfg(unix)".dependencies.nix]
+ version = "0.29"
+-features = ["signal"]
++features = ["signal", "poll"]
+ default-features = false
+ 
+ [profile.release]
+--- a/src/term_probe.rs
++++ b/src/term_probe.rs
+@@ -5,14 +5,15 @@
+ //! encoder needs the real cell size to fit an image into N cells. Kitty
+ //! and iTerm2 take a cell count and scale on the terminal side.
+ //!
+-//! On Unix the pixel size comes from the `TIOCGWINSZ` ioctl. Windows has
+-//! no equivalent that works under ConPTY, so Windows Terminal is asked
++//! On Unix the pixel size comes from the `TIOCGWINSZ` ioctl. Tabby can
++//! leave the pixel fields empty, so ask it with `CSI 16 t` in that case.
++//! Windows has no equivalent ioctl that works under ConPTY, so it is asked
+ //! with `CSI 16 t` (cell size) and `CSI c` (device attributes, where
+ //! attribute 4 means Sixel). The attributes reply doubles as the end
+ //! marker: every terminal answers it, and it comes after the `16 t` reply.
+ 
+-/// How long to wait for the device attributes reply before giving up.
+-#[cfg(windows)]
++/// How long to wait for a terminal's response before giving up.
++#[cfg(any(unix, windows))]
+ const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(300);
+ 
+ #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+@@ -25,10 +26,8 @@
+     pub answered: bool,
+ }
+ 
+-/// Reads every CSI reply in `reply` and keeps what we asked for. Only the
+-/// Windows probe reads replies from the key events (Unix gets the cell size
+-/// from the terminal's ioctl), so elsewhere it exists for the tests alone.
+-#[cfg(any(windows, test))]
++/// Reads the terminal's cell size and device attributes from its CSI replies.
++#[cfg(any(unix, windows, test))]
+ pub fn parse_reply(reply: &str) -> TerminalReport {
+     let mut report = TerminalReport::default();
+     let mut rest = reply;
+@@ -109,12 +108,73 @@
+     let mut report = TerminalReport::default();
+     if let Ok(size) = ratatui::crossterm::terminal::window_size() {
+         if size.columns > 0 && size.rows > 0 && size.width > 0 && size.height > 0 {
+-            report.cell_px = Some((size.width / size.columns, size.height / size.rows));
++            let (width, height) = (size.width / size.columns, size.height / size.rows);
++            if width > 0 && height > 0 {
++                report.cell_px = Some((width, height));
++            }
++        }
++    }
++    #[cfg(unix)]
++    if report.cell_px.is_none() && direct_tabby() {
++        use ratatui::crossterm::terminal;
++
++        if terminal::enable_raw_mode().is_ok() {
++            report.cell_px = read_tabby_cell_size();
++            let _ = terminal::disable_raw_mode();
+         }
+     }
+     report
+ }
+ 
++#[cfg(unix)]
++fn direct_tabby() -> bool {
++    use std::env::var_os;
++
++    let term_program = var_os("TERM_PROGRAM");
++    !var_os("TMUX").is_some_and(|value| !value.is_empty())
++        && !term_program.as_ref().is_some_and(|name| name.eq_ignore_ascii_case("tmux"))
++        && (term_program.is_some_and(|name| name.eq_ignore_ascii_case("tabby"))
++            || var_os("TABBY_CONFIG_DIRECTORY").is_some_and(|value| !value.is_empty()))
++}
++
++#[cfg(unix)]
++fn read_tabby_cell_size() -> Option<(u16, u16)> {
++    use nix::poll::{poll, PollFd, PollFlags};
++    use nix::unistd::read;
++    use std::{
++        io::{self, Write},
++        os::fd::{AsFd, AsRawFd},
++        time::Instant,
++    };
++
++    let mut output = io::stdout().lock();
++    output.write_all(b"\x1b[16t").ok()?;
++    output.flush().ok()?;
++    drop(output);
++
++    let input = io::stdin();
++    let mut descriptors = [PollFd::new(input.as_fd(), PollFlags::POLLIN)];
++    let deadline = Instant::now() + PROBE_TIMEOUT;
++    let mut reply = Vec::new();
++    let mut buffer = [0; 64];
++    while reply.len() < 256 {
++        let timeout_ms = deadline.saturating_duration_since(Instant::now()).as_millis() as u16;
++        if timeout_ms == 0 || poll(&mut descriptors, timeout_ms).ok()? == 0 {
++            break;
++        }
++        let count = read(input.as_raw_fd(), &mut buffer).ok()?;
++        if count == 0 {
++            break;
++        }
++        reply.extend_from_slice(&buffer[..count]);
++        let report = parse_reply(&String::from_utf8_lossy(&reply));
++        if report.cell_px.is_some() {
++            return report.cell_px;
++        }
++    }
++    None
++}
++
+ #[cfg(windows)]
+ fn probe_terminal() -> TerminalReport {
+     use ratatui::crossterm::{
+--- a/src/graph/image.rs
++++ b/src/graph/image.rs
+@@ -13,7 +13,7 @@
+     git::CommitHash,
+     graph::{
+         geometry::{bounding_box_u32, Point},
+-        Edge, EdgeType, Graph,
++        BranchSegment, Edge, EdgeType, Graph,
+     },
+     protocol::{cell_pixels, ImageProtocol, PreparedImage},
+ };
+@@ -484,9 +484,16 @@
+             Some((unco_x, head_pos_y, UNCOMMITTED_COLOR))
+         });
+ 
+-    let max_pos_x = match image_width_mode {
+-        GraphImageWidthMode::Compact => edges.iter().map(|e| e.pos_x).fold(pos_x, usize::max),
+-        GraphImageWidthMode::Fixed => graph.max_pos_x,
++    let max_pos_x = match (image_width_mode, graph_style) {
++        (GraphImageWidthMode::Compact, GraphStyle::Smooth) => {
++            // Legacy edges take different routes from the Bézier curves and
++            // may leave out a right-hand lane that a curve crosses in this row.
++            smooth_segments_at_row(&graph.branch_segments, pos_y).fold(pos_x, |rightmost, segment| {
++                rightmost.max(segment.source_pos_x).max(segment.target_pos_x)
++            })
++        }
++        (GraphImageWidthMode::Compact, _) => edges.iter().map(|e| e.pos_x).fold(pos_x, usize::max),
++        (GraphImageWidthMode::Fixed, _) => graph.max_pos_x,
+     };
+ 
+     let cell_count = max_pos_x + 1;
+@@ -508,6 +515,17 @@
+     )
+ }
+ 
++fn smooth_segments_at_row(
++    segments: &[BranchSegment],
++    row: usize,
++) -> impl Iterator<Item = &BranchSegment> {
++    segments.iter().filter(move |segment| {
++        let first = segment.source_pos_y.min(segment.target_pos_y);
++        let last = segment.source_pos_y.max(segment.target_pos_y);
++        (first..=last).contains(&row)
++    })
++}
++
+ type Pixels = FxHashSet<(i32, i32)>;
+ 
+ #[derive(Debug)]
+@@ -979,7 +997,7 @@
+                     .map(|other| image_params.edge_color(other.color_index))
+             };
+ 
+-            let mut segs: Vec<_> = branch_segments.iter().collect();
++            let mut segs: Vec<_> = smooth_segments_at_row(branch_segments, pos_y).collect();
+             // Uncommitted segments first (behind); then sort by rightmost column.
+             segs.sort_by_key(|s| {
+                 (
+@@ -989,11 +1007,6 @@
+             });
+ 
+             for seg in segs {
+-                let min_y = seg.target_pos_y.min(seg.source_pos_y);
+-                let max_y = seg.target_pos_y.max(seg.source_pos_y);
+-                if pos_y < min_y || pos_y > max_y {
+-                    continue;
+-                }
+                 let color_override = if is_uncommitted {
+                     Some(commit_color)
+                 } else if let Some(color) = uncommitted_continuation_color(seg) {
+@@ -1613,7 +1626,6 @@
+     use crate::config::GraphColorConfig;
+ 
+     use super::*;
+-    use crate::graph::calc::BranchSegment;
+     use EdgeType::*;
+ 
+     const OUTPUT_DIR: &str = "./out/ut/graph/image";
+@@ -1641,6 +1653,42 @@
+     }
+ 
+     #[test]
++    fn compact_smooth_row_keeps_the_right_side_of_a_curve() {
++        let image_params = test_image_params();
++        let drawing_pixels = DrawingPixels::new(&image_params);
++        let hash = CommitHash::from("0000001");
++        let graph = Graph {
++            commits: Vec::new(),
++            commit_pos_map: [(hash.clone(), (0, 1))].into_iter().collect(),
++            commit_color_map: FxHashMap::default(),
++            edges: vec![Vec::new(), vec![Edge::new(Vertical, 0, 0)]],
++            max_pos_x: 2,
++            branch_segments: vec![BranchSegment {
++                source_pos_x: 2,
++                source_pos_y: 2,
++                target_pos_x: 0,
++                target_pos_y: 0,
++                color_index: 1,
++                is_branch: true,
++                is_uncommitted: false,
++            }],
++        };
++        let row = build_single_graph_row_image(
++            &graph,
++            &image_params,
++            &drawing_pixels,
++            GraphStyle::Smooth,
++            GraphImageWidthMode::Compact,
++            &hash,
++            false,
++        );
++        assert_eq!(row.cell_count, 3);
++        assert!(decode_graph_row(&row).enumerate_pixels().any(|(x, _, pixel)| {
++            x >= 2 * u32::from(image_params.width) && *pixel == image_params.edge_color(1)
++        }));
++    }
++
++    #[test]
+     fn smooth_branch_segment_on_uncommitted_column_keeps_own_color() {
+         let image_params = test_image_params();
+         let drawing_pixels = DrawingPixels::new(&image_params);

@@ -61,12 +61,17 @@ exec zsh -l
 | **Glow** | `glow README.md` | 在终端渲染 Markdown |
 | **Vim** | `vim README.md` | 按 `i` 编辑，按 `Esc` 后输入 `:wq` 并回车保存退出 |
 | **Neovim** | `nvim .` | 在 LazyVim 中按 `空格 e` 打开文件树，按 `空格 s g` 搜索项目 |
+| **Gitoui** | `gitoui` | 在 LazyVim 中按 `空格 g g` 查看仓库提交图，按 `空格 g G` 从当前目录打开 |
 
 用 **jq** 从 JSON 中提取所需字段。运行下面的命令可列出 Tabby 的插件依赖。
 
 ```sh
 jq '.dependencies | keys' config/tabby/plugins/package.json
 ```
+
+在支持 Sixel 的 tmux 会话里，LazyVim 的 Gitoui 快捷键会新开一个 tmux 窗口绘制平滑提交图。按 `q` 关闭 Gitoui 即可回到编辑器。其他会话在 Snacks 终端里显示文本提交图。部署会应用 `kael-tmux` 主题、增强并排差异和三栏冲突视图。
+
+如需构建本项目的 Gitoui 0.5.0，准备好 Rust 和 Cargo（1.88 或更新版本），运行 `./vendor/gitoui/build.sh`。脚本会将 Sixel 尺寸适配、平滑连线和抗锯齿补丁应用到固定版本，再安装到 Kael 的可执行文件目录。可在支持 Sixel 的终端里运行 `gitoui --graph-renderer sixel` 查看图形渲染。
 
 ### 任务、资源和运行环境
 
@@ -115,7 +120,7 @@ Ada 状态栏显示模型、Git 改动，以及可用的周额度和上下文余
 
 - **个人 Zsh 设置**写在 `${XDG_CONFIG_HOME:-$HOME/.config}/kael-terminal/local.zsh`。安装脚本会在 `.zshrc` 中维护加载片段。
 - **应用配置**集中在 [`config/`](config/)。在仓库中修改后，可重新运行相应的 `./install.sh` 命令。Vim 配置部署到 `~/.vimrc`。
-- **Neovim** 使用本机安装的 Neovim 0.12 或更新版本。准备好 Tree-sitter CLI 0.26.1 或更新版本，首次启动时 LazyVim 会下载插件。配置包含主题、状态栏、C/C++ 和 Python 支持，以及插件锁文件。已有的自定义 LazyVim 会接收状态栏扩展。较旧的 Neovim 在加载本项目的配置时会沿用 `~/.vimrc`。
+- **Neovim** 使用本机安装的 Neovim 0.12 或更新版本。准备好 Tree-sitter CLI 0.26.1 或更新版本，首次启动时 LazyVim 会下载插件。配置包含主题、状态栏、C/C++ 和 Python 支持，以及插件锁文件。已有的自定义 LazyVim 会接收状态栏扩展和 Gitoui 快捷键。较旧的 Neovim 在加载本项目的配置时会沿用 `~/.vimrc`。
 - **部署备份**位于 `${XDG_STATE_HOME:-$HOME/.local/state}/kael-terminal/backups/`，包含被更新的 Codex 和 Tabby 活动配置。登录凭据、任务数据库、命令历史和运行缓存存放在各设备本地。
 
 ```sh

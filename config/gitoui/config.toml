@@ -1,0 +1,7 @@
+[core.option]
+theme = "kael-tmux"
+graph_renderer = "auto"
+
+[ui.common]
+diff_mode = "side-by-side-enhanced"
+conflict_view = "three-pane"

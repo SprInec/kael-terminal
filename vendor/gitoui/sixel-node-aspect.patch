@@ -1,0 +1,82 @@
+--- a/src/graph/image.rs
++++ b/src/graph/image.rs
+@@ -15,7 +15,7 @@
+         geometry::{bounding_box_u32, Point},
+         Edge, EdgeType, Graph,
+     },
+-    protocol::{ImageProtocol, PreparedImage},
++    protocol::{cell_pixels, ImageProtocol, PreparedImage},
+ };
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+@@ -63,7 +63,8 @@
+         image_width_mode: GraphImageWidthMode,
+         image_protocol: ImageProtocol,
+     ) -> Self {
+-        let image_params = ImageParams::new(graph_color_set, cell_width_type);
++        let image_params =
++            ImageParams::for_protocol(graph_color_set, cell_width_type, image_protocol);
+         let drawing_pixels = DrawingPixels::new(&image_params);
+ 
+         GraphImageManager {
+@@ -192,7 +193,8 @@
+             return;
+         }
+         self.cell_width_type = cell_width_type;
+-        self.image_params = ImageParams::new(graph_color_set, cell_width_type);
++        self.image_params =
++            ImageParams::for_protocol(graph_color_set, cell_width_type, self.image_protocol);
+         self.drawing_pixels = DrawingPixels::new(&self.image_params);
+         self.clear_prepared_images();
+     }
+@@ -337,6 +339,32 @@
+ }
+ 
+ impl ImageParams {
++    fn for_protocol(
++        graph_color_set: &GraphColorSet,
++        cell_width_type: CellWidthType,
++        image_protocol: ImageProtocol,
++    ) -> Self {
++        let mut params = Self::new(graph_color_set, cell_width_type);
++        if image_protocol != ImageProtocol::Sixel {
++            return params;
++        }
++
++        // Sixel scales each row to the terminal's exact cell dimensions.
++        // Draw at the same aspect ratio before scaling so nodes stay round.
++        let (cell_width, cell_height) = cell_pixels();
++        let lane_width = match cell_width_type {
++            CellWidthType::Double => cell_width * 2,
++            CellWidthType::Single => cell_width,
++        };
++        let min_dimension = u32::from(params.circle_outer_radius + 2) * 2;
++        let width = (u32::from(params.height) * lane_width + cell_height / 2) / cell_height;
++        let width = width.clamp(min_dimension, 256);
++        let height = (width * cell_height + lane_width / 2) / lane_width;
++        params.width = width as u16;
++        params.height = height.clamp(min_dimension, 256) as u16;
++        params
++    }
++
+     pub fn new(graph_color_set: &GraphColorSet, cell_width_type: CellWidthType) -> Self {
+         let (width, height, line_width, circle_inner_radius, circle_outer_radius) =
+             match cell_width_type {
+--- a/src/protocol.rs
++++ b/src/protocol.rs
+@@ -879,11 +879,13 @@
+ 
+ /// Records the terminal's cell size in pixels, as measured at startup.
+ pub fn set_cell_pixels(cell_px: Option<(u16, u16)>) {
+-    let packed = cell_px.map_or(0, |(w, h)| u32::from(w) << 16 | u32::from(h));
++    let packed = cell_px
++        .filter(|&(w, h)| w > 0 && h > 0)
++        .map_or(0, |(w, h)| u32::from(w) << 16 | u32::from(h));
+     CELL_PX.store(packed, Ordering::Relaxed);
+ }
+ 
+-fn cell_pixels() -> (u32, u32) {
++pub(crate) fn cell_pixels() -> (u32, u32) {
+     match CELL_PX.load(Ordering::Relaxed) {
+         0 => DEFAULT_CELL_PX,
+         packed => (packed >> 16, packed & 0xffff),

@@ -113,7 +113,8 @@ def nvim_config_files():
     init_lua = nvim / "init.lua"
     init_vim = nvim / "init.vim"
     lazy_config = nvim / "lua/config/lazy.lua"
-    extensions = ("lua/plugins/kael-statusline.lua", "lua/kael/statusline-icons.json")
+    extensions = ("lua/plugins/kael-statusline.lua", "lua/kael/statusline-icons.json",
+                  "lua/plugins/gitoui.lua")
     mapping = {}
 
     if init_lua.exists() or init_lua.is_symlink():
@@ -174,6 +175,8 @@ def config_files(headless, tabby_modules):
         "btop/btop.conf": XDG_CONFIG / "btop/btop.conf",
         "atuin/config.toml": ATUIN / "config.toml",
         "glow/glow.yml": XDG_CONFIG / "glow/glow.yml",
+        "gitoui/config.toml": XDG_CONFIG / "gitoui/config.toml",
+        "gitoui/themes/kael-tmux.toml": XDG_CONFIG / "gitoui/themes/kael-tmux.toml",
         "vim/vimrc": HOME / ".vimrc",
     }
     mapping.update(nvim_config_files())

@@ -61,12 +61,17 @@ Run `y config` to open **Yazi**. Browse with the arrow keys and quit with `q`. Z
 | **Glow** | `glow README_en.md` | Render Markdown in the terminal |
 | **Vim** | `vim README_en.md` | Press `i` to edit, then `Esc` and `:wq` followed by Enter to save and exit |
 | **Neovim** | `nvim .` | In LazyVim, press `Space e` for the file tree or `Space s g` to search the project |
+| **Gitoui** | `gitoui` | In LazyVim, press `Space g g` for the repository's commit graph or `Space g G` to launch from the current directory |
 
 Use **jq** to extract fields from JSON. The command below lists Tabby's plugin dependencies.
 
 ```sh
 jq '.dependencies | keys' config/tabby/plugins/package.json
 ```
+
+In Sixel-capable tmux sessions, the LazyVim shortcuts open Gitoui in a new tmux window to draw the smooth commit graph. Press `q` to close Gitoui and return to the editor. Other sessions display a text graph in the Snacks terminal. Configuration deployment applies the `kael-tmux` theme, enhanced side-by-side diffs, and a three-pane conflict view.
+
+To build the project's Gitoui 0.5.0, install Rust and Cargo 1.88 or later and run `./vendor/gitoui/build.sh`. The script applies the Sixel sizing, smooth edges, and antialiasing patches to the pinned release and installs it in Kael's executable directory. Run `gitoui --graph-renderer sixel` in a Sixel-capable terminal to see the image rendering.
 
 ### Tasks, system resources, and runtimes
 
@@ -115,7 +120,7 @@ The Ada status line shows the model, Git changes, and remaining weekly quota and
 
 - **Personal Zsh settings** go in `${XDG_CONFIG_HOME:-$HOME/.config}/kael-terminal/local.zsh`. The installer maintains a loader block in `.zshrc`.
 - **Application configuration** lives in [`config/`](config/). Edit files there and rerun the relevant `./install.sh` command. Vim uses `~/.vimrc`.
-- **Neovim** uses a separately installed Neovim 0.12 or later. Install Tree-sitter CLI 0.26.1 or later before the first launch, when LazyVim downloads its plugins. The setup includes a theme, status line, C/C++ and Python support, and a plugin lockfile. Existing custom LazyVim setups receive the status line extension. Older Neovim versions load `~/.vimrc` through the bundled configuration.
+- **Neovim** uses a separately installed Neovim 0.12 or later. Install Tree-sitter CLI 0.26.1 or later before the first launch, when LazyVim downloads its plugins. The setup includes a theme, status line, C/C++ and Python support, and a plugin lockfile. Existing custom LazyVim setups receive the status line extension and Gitoui shortcuts. Older Neovim versions load `~/.vimrc` through the bundled configuration.
 - **Deployment backups** live in `${XDG_STATE_HOME:-$HOME/.local/state}/kael-terminal/backups/` and include any replaced Codex and Tabby configs. Credentials, task databases, shell history, and runtime caches are stored per device.
 
 ```sh

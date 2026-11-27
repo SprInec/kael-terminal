@@ -1,0 +1,191 @@
+--- a/src/graph/image.rs
++++ b/src/graph/image.rs
+@@ -297,7 +297,7 @@
+             CellWidthType::Double => self.cell_count * 2,
+             CellWidthType::Single => self.cell_count,
+         };
+-        image_protocol.prepare_image(&self.bytes, image_cell_width, image_id)
++        image_protocol.prepare_graph_image(&self.bytes, image_cell_width, image_id)
+     }
+ }
+ 
+@@ -360,8 +360,16 @@
+         let width = (u32::from(params.height) * lane_width + cell_height / 2) / cell_height;
+         let width = width.clamp(min_dimension, 256);
+         let height = (width * cell_height + lane_width / 2) / lane_width;
++        // Retain more coverage samples when drawing diagonals and curves.
++        let width = width * 2;
++        let height = height.clamp(min_dimension, 256) * 2;
++        // Use a centered, roughly two-pixel stroke after downsampling.
++        let stroke_width = 2 * (height / cell_height) + 1;
+         params.width = width as u16;
+-        params.height = height.clamp(min_dimension, 256) as u16;
++        params.height = height as u16;
++        params.line_width = stroke_width.min(width / 3) as u16;
++        params.circle_inner_radius *= 2;
++        params.circle_outer_radius *= 2;
+         params
+     }
+ 
+@@ -1125,7 +1133,10 @@
+     let x_offset = (commit_pos_x * image_params.width as usize) as i32;
+     let center_x = x_offset + (image_params.width as i32 / 2);
+     let center_y = (image_params.height / 2) as i32;
+-    let dot_radius = (image_params.line_width as i32).max(1);
++    let dot_radius = image_params
++        .line_width
++        .min(image_params.circle_inner_radius / 2)
++        .max(1) as i32;
+     draw_filled_circle(img_buf, center_x, center_y, dot_radius, color);
+ }
+ 
+@@ -1524,6 +1535,9 @@
+         // Local row coordinates: y=0 at top of this row's image
+         let lx = abs_x as i32;
+         let ly = (abs_y - row_abs_top) as i32;
++        if prev == Some((lx, ly)) {
++            continue;
++        }
+ 
+         let near = ly >= -margin && ly < image_height + margin;
+ 
+@@ -1532,8 +1546,7 @@
+             if near || prev_near {
+                 draw_thick_line(img_buf, px, py, lx, ly, radius, color);
+             }
+-        }
+-        if ly >= 0 && ly < image_height {
++        } else if ly >= 0 && ly < image_height {
+             draw_filled_circle(img_buf, lx, ly, radius, color);
+         }
+ 
+--- a/src/protocol.rs
++++ b/src/protocol.rs
+@@ -169,11 +169,36 @@
+     }
+ }
+ 
++#[derive(Clone, Copy)]
++enum SixelContent {
++    General,
++    Graph,
++}
++
+ impl ImageProtocol {
+     pub fn prepare_image(&self, bytes: &[u8], cell_width: usize, image_id: u32) -> PreparedImage {
++        self.prepare_image_for(bytes, cell_width, image_id, SixelContent::General)
++    }
++
++    pub(crate) fn prepare_graph_image(
++        &self,
++        bytes: &[u8],
++        cell_width: usize,
++        image_id: u32,
++    ) -> PreparedImage {
++        self.prepare_image_for(bytes, cell_width, image_id, SixelContent::Graph)
++    }
++
++    fn prepare_image_for(
++        &self,
++        bytes: &[u8],
++        cell_width: usize,
++        image_id: u32,
++        content: SixelContent,
++    ) -> PreparedImage {
+         let symbol = match self {
+             ImageProtocol::Iterm2 => iterm2_encode(bytes, cell_width, 1),
+-            ImageProtocol::Sixel => sixel_encode(bytes, cell_width, 1),
++            ImageProtocol::Sixel => sixel_encode(bytes, cell_width, 1, content),
+             ImageProtocol::Kitty => kitty_encode(bytes, cell_width, 1, image_id),
+             ImageProtocol::KittyUnicode { tmux } => {
+                 return kitty_unicode_prepare(bytes, cell_width, image_id, *tmux);
+@@ -224,7 +249,9 @@
+     ) -> Option<String> {
+         match self {
+             ImageProtocol::Iterm2 => Some(iterm2_encode(bytes, cell_width, cell_height)),
+-            ImageProtocol::Sixel => Some(sixel_encode(bytes, cell_width, cell_height)),
++            ImageProtocol::Sixel => {
++                Some(sixel_encode(bytes, cell_width, cell_height, SixelContent::General))
++            }
+             ImageProtocol::Kitty => Some(if clear_at_cursor {
+                 kitty_encode(bytes, cell_width, cell_height, image_id)
+             } else {
+@@ -898,31 +925,44 @@
+     img: image::RgbaImage,
+     cells: (usize, usize),
+     cell_px: (u32, u32),
++    filter: image::imageops::FilterType,
+ ) -> image::RgbaImage {
+     let target = (cells.0 as u32 * cell_px.0, cells.1 as u32 * cell_px.1);
+     if target.0 == 0 || target.1 == 0 || img.dimensions() == target {
+         return img;
+     }
+-    image::imageops::resize(
+-        &img,
+-        target.0,
+-        target.1,
+-        image::imageops::FilterType::Lanczos3,
+-    )
++    image::imageops::resize(&img, target.0, target.1, filter)
+ }
+ 
+ /// Sixel draws raw pixels and never scales, so the image is resized to
+ /// exactly `cell_width × cell_height` cells of the real cell size first.
+ /// Kitty and iTerm2 get the cell count instead and scale by themselves.
+-fn sixel_encode(png_bytes: &[u8], cell_width: usize, cell_height: usize) -> String {
++fn sixel_encode(
++    png_bytes: &[u8],
++    cell_width: usize,
++    cell_height: usize,
++    content: SixelContent,
++) -> String {
+     let img = match image::load_from_memory(png_bytes) {
+         Ok(i) => i.to_rgba8(),
+         Err(_) => return iterm2_encode(png_bytes, cell_width, cell_height),
+     };
+-    let img = fit_to_cells(img, (cell_width, cell_height), cell_pixels());
++    let filter = match content {
++        SixelContent::General => image::imageops::FilterType::Lanczos3,
++        // A positive filter preserves edge coverage without sharp halos.
++        SixelContent::Graph => image::imageops::FilterType::Triangle,
++    };
++    let img = fit_to_cells(img, (cell_width, cell_height), cell_pixels(), filter);
+     let (w, h) = (img.width() as usize, img.height() as usize);
+     let sixel_img = icy_sixel::SixelImage::from_rgba(img.into_raw(), w, h);
+-    match sixel_img.encode() {
++    let encoded = match content {
++        SixelContent::General => sixel_img.encode(),
++        SixelContent::Graph => sixel_img.encode_with(&icy_sixel::EncodeOptions {
++            diffusion: 0.0,
++            ..Default::default()
++        }),
++    };
++    match encoded {
+         Ok(s) => s,
+         Err(_) => iterm2_encode(png_bytes, cell_width, cell_height),
+     }
+@@ -951,15 +991,21 @@
+     #[test]
+     fn sixel_images_are_scaled_to_whole_cells() {
+         let src = image::RgbaImage::new(50, 56);
+-        let fitted = fit_to_cells(src, (2, 1), (10, 20));
++        let filter = image::imageops::FilterType::Lanczos3;
++        let fitted = fit_to_cells(src, (2, 1), (10, 20), filter);
+         assert_eq!(fitted.dimensions(), (20, 20));
+-        let fitted = fit_to_cells(image::RgbaImage::new(20, 20), (2, 1), (10, 20));
++        let fitted = fit_to_cells(image::RgbaImage::new(20, 20), (2, 1), (10, 20), filter);
+         assert_eq!(fitted.dimensions(), (20, 20));
+     }
+ 
+     #[test]
+     fn unknown_cell_size_leaves_the_image_alone() {
+-        let fitted = fit_to_cells(image::RgbaImage::new(50, 56), (2, 1), (0, 0));
++        let fitted = fit_to_cells(
++            image::RgbaImage::new(50, 56),
++            (2, 1),
++            (0, 0),
++            image::imageops::FilterType::Lanczos3,
++        );
+         assert_eq!(fitted.dimensions(), (50, 56));
+     }
+ 

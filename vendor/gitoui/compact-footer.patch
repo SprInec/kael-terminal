@@ -1,0 +1,146 @@
+--- a/src/app.rs
++++ b/src/app.rs
+@@ -2932,7 +2932,7 @@
+         f.render_widget(base, f.area());
+ 
+         let notification = self.notification_rows(f.area().width);
+-        let [header_area, view_area, gap_area, status_line_area] =
++        let [header_area, view_area, divider_area, status_line_area] =
+             split_app_areas_with_header(f.area(), notification.len().max(1) as u16);
+ 
+         self.update_state(view_area);
+@@ -2950,10 +2950,10 @@
+             self.dir_dropdown_area = None;
+         }
+ 
+-        // Dotted separator between view content and shortcuts bar
++        // Text hyphens sit lower than box-drawing dashes, closer to the status text.
+         let sep_style = Style::default().fg(self.ctx.color_theme.divider_fg);
+-        let sep_span = Span::styled("╌".repeat(gap_area.width as usize), sep_style);
+-        f.render_widget(Paragraph::new(Line::from(sep_span)), gap_area);
++        let sep_span = Span::styled("-".repeat(divider_area.width as usize), sep_style);
++        f.render_widget(Paragraph::new(Line::from(sep_span)), divider_area);
+ 
+         if notification.len() > 1 {
+             // An error or a warning too long for one row is wrapped over
+@@ -3854,16 +3854,15 @@
+ 
+             // The hints never push the HEAD info out: they lose their last
+             // entries first when the window is narrow.
+-            let shortcut_text = crate::text_fit::fit_hints(
++            let shortcut_line = crate::text_fit::fit_hints(
+                 &shortcut_text,
+                 (area.width as usize).saturating_sub(4 + 14),
+-            );
+-            let shortcut_display_width = crate::text_fit::width(&shortcut_text) as u16;
+-            let right_constraint = Constraint::Length(shortcut_display_width + 4);
++                dim_separator,
++            )
++            .style(dim_text);
++            let right_constraint = Constraint::Length(shortcut_line.width() as u16 + 4);
+             let [left_area, right_area] =
+                 Layout::horizontal([Constraint::Min(0), right_constraint]).areas(area);
+-            let shortcut_spans = vec![Span::styled(shortcut_text, dim_text)];
+-            let shortcut_line = Line::from(shortcut_spans);
+             let shortcut_paragraph = Paragraph::new(shortcut_line)
+                 .style(Style::default().bg(self.ctx.color_theme.bg))
+                 .alignment(Alignment::Right)
+--- a/src/text_fit.rs
++++ b/src/text_fit.rs
+@@ -10,7 +10,7 @@
+ //! for two columns.
+ 
+ use ratatui::{
+-    style::{Color, Stylize},
++    style::{Color, Style, Stylize},
+     text::{Line, Span},
+ };
+ 
+@@ -453,23 +453,29 @@
+     (out, new_cursor)
+ }
+ 
+-/// The shortcut hints of a footer (`⌘ a:one▕▏b:two▕▏c:three`) in `max`
+-/// columns: the last hints are dropped until it fits, the first one is kept
+-/// and shortened with a `…` if even it is too wide.
+-pub fn fit_hints(hint: &str, max: usize) -> String {
+-    const SEP: &str = "▕▏";
+-    if width(hint) <= max {
+-        return hint.to_string();
+-    }
+-    let (prefix, body) = match hint.strip_prefix("⌘ ") {
+-        Some(rest) => ("⌘ ", rest),
+-        None => ("", hint),
+-    };
+-    let mut parts: Vec<&str> = body.split(SEP).collect();
+-    while parts.len() > 1 && width(&format!("{prefix}{}", parts.join(SEP))) > max {
+-        parts.pop();
+-    }
+-    ellipsize_end(&format!("{prefix}{}", parts.join(SEP)), max)
++/// Render footer hints within `max` columns, including the styled dividers.
++/// Keep complete hints from the start and shorten the first if it alone is too wide.
++pub fn fit_hints(hint: &str, max: usize, separator_style: Style) -> Line<'_> {
++    const SEPARATOR: &str = " | ";
++    let mut parts = hint.split("▕▏");
++    let first = parts.next().unwrap_or_default();
++    let mut used = width(first);
++    if used > max {
++        return Line::from(ellipsize_end(first, max));
++    }
++
++    let separator_width = width(SEPARATOR);
++    let mut spans = vec![Span::raw(first)];
++    for part in parts {
++        let required = separator_width + width(part);
++        if required > max - used {
++            break;
++        }
++        spans.push(Span::styled(SEPARATOR, separator_style));
++        spans.push(Span::raw(part));
++        used += required;
++    }
++    Line::from(spans)
+ }
+ 
+ /// One styled line cut into rows that fit `max`, each keeping its styles.
+@@ -701,11 +707,16 @@
+     #[test]
+     fn hints_drop_from_the_end_and_spans_get_an_ellipsis() {
+         let h = "⌘ f:search▕▏Tab:refs▕▏?:help▕▏q:quit";
+-        assert_eq!(fit_hints(h, 100), h);
+-        let short = fit_hints(h, 24);
+-        assert!(width(&short) <= 24, "{short}");
+-        assert!(short.starts_with("⌘ f:search"), "{short}");
+-        assert!(!short.contains("q:quit"));
++        let divider = Style::default().fg(Color::DarkGray);
++        let full = fit_hints(h, 100, divider);
++        assert_eq!(full.to_string(), "⌘ f:search | Tab:refs | ?:help | q:quit");
++        assert_eq!(full.spans[1], Span::styled(" | ", divider));
++        assert_eq!(full.spans[2], Span::raw("Tab:refs"));
++        assert_eq!(
++            fit_hints(h, 21, divider).to_string(),
++            "⌘ f:search | Tab:refs"
++        );
++        assert_eq!(fit_hints(h, 20, divider).to_string(), "⌘ f:search");
+         let spans = vec![Span::raw("HEAD → "), Span::raw("a-long-branch-name")];
+         let cut = ellipsize_spans(spans, 12);
+         let text: String = cut.iter().map(|s| s.content.as_ref()).collect();
+@@ -753,10 +764,14 @@
+     #[test]
+     fn hints_without_a_prefix_or_with_a_first_hint_too_wide_still_fit() {
+         let h = "search-everything-in-the-repository:f▕▏quit:q";
+-        let fitted = fit_hints(h, 12);
+-        assert!(width(&fitted) <= 12, "{fitted}");
+-        assert!(fitted.ends_with('…'), "{fitted}");
+-        assert_eq!(fit_hints("q:quit▕▏?:help", 40), "q:quit▕▏?:help");
++        let divider = Style::default();
++        let fitted = fit_hints(h, 12, divider);
++        assert_eq!(fitted.to_string(), "search-ever…");
++        assert_eq!(fit_hints(h, 0, divider).width(), 0);
++        assert_eq!(
++            fit_hints("q:quit▕▏?:help", 40, divider).to_string(),
++            "q:quit | ?:help"
++        );
+     }
+ 
+     #[test]
