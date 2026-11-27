@@ -1,3 +1,5 @@
+<div align="center">
+
 # kael-terminal
 
 **简体中文** · [English](README_en.md)
@@ -9,6 +11,8 @@
 适用于 Ubuntu 和 Debian 的终端工作环境。用 Zsh 和 Starship 导航项目，在定制 tmux 中保留会话，通过 Yazi、Vim、Neovim 和 Gitoui 浏览文件、编辑代码与审查提交。桌面安装提供 Tabby、Sixel 图像显示和配套字体，服务器可使用无桌面模式。
 
 [安装](#安装) · [Shell 与目录导航](#shell-与目录导航) · [文件查找与阅读](#文件查找与阅读) · [tmux 会话](#tmux-会话) · [Tabby 桌面终端](#tabby-桌面终端) · [编辑器](#编辑器) · [Git 与 Gitoui](#git-与-gitoui) · [Codex CLI](#codex-cli) · [任务与笔记](#任务与笔记) · [系统工具与运行时](#系统工具与运行时) · [配置与维护](#配置与维护)
+
+</div>
 
 ## 安装
 

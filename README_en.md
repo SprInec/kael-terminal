@@ -1,3 +1,5 @@
+<div align="center">
+
 # kael-terminal
 
 [简体中文](README.md) · **English**
@@ -9,6 +11,8 @@
 A terminal workspace for Ubuntu and Debian. Navigate projects with Zsh and Starship, keep work running in a customized tmux session, and browse files, edit code, and review commits with Yazi, Vim, Neovim, and Gitoui. Desktop setup includes Tabby, Sixel image rendering, and matching fonts. Headless setup is available for servers.
 
 [Installation](#installation) · [Shell and navigation](#shell-and-navigation) · [Finding and reading files](#finding-and-reading-files) · [tmux sessions](#tmux-sessions) · [Tabby desktop terminal](#tabby-desktop-terminal) · [Editors](#editors) · [Git and Gitoui](#git-and-gitoui) · [Codex CLI](#codex-cli) · [Tasks and notes](#tasks-and-notes) · [System tools and runtimes](#system-tools-and-runtimes) · [Configuration and maintenance](#configuration-and-maintenance)
+
+</div>
 
 ## Installation
 
