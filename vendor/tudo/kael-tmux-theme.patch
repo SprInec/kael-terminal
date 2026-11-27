@@ -1,0 +1,116 @@
+diff --git a/src/theme.rs b/src/theme.rs
+--- a/src/theme.rs
++++ b/src/theme.rs
+@@ -64,6 +64,7 @@
+ #[serde(rename_all = "kebab-case")]
+ pub enum ThemeKind {
+     TokyoNight,
++    KaelTmux,
+     CatppuccinMocha,
+     Dracula,
+     Nord,
+@@ -79,9 +80,10 @@
+ }
+ 
+ impl ThemeKind {
+-    pub fn all() -> [ThemeKind; 12] {
++    pub fn all() -> [ThemeKind; 13] {
+         [
+             ThemeKind::TokyoNight,
++            ThemeKind::KaelTmux,
+             ThemeKind::CatppuccinMocha,
+             ThemeKind::Dracula,
+             ThemeKind::Nord,
+@@ -99,6 +101,7 @@
+     pub fn name(self) -> &'static str {
+         match self {
+             ThemeKind::TokyoNight => "Tokyo Night",
++            ThemeKind::KaelTmux => "Kael tmux",
+             ThemeKind::CatppuccinMocha => "Catppuccin Mocha",
+             ThemeKind::Dracula => "Dracula",
+             ThemeKind::Nord => "Nord",
+@@ -124,6 +127,7 @@
+     pub fn from_key(s: &str) -> Option<ThemeKind> {
+         match s.trim().to_lowercase().replace([' ', '_'], "-").as_str() {
+             "tokyo-night" | "tokyonight" | "tokyo" => Some(ThemeKind::TokyoNight),
++            "kael-tmux" => Some(ThemeKind::KaelTmux),
+             "catppuccin-mocha" | "catppuccin" | "mocha" => Some(ThemeKind::CatppuccinMocha),
+             "dracula" => Some(ThemeKind::Dracula),
+             "nord" => Some(ThemeKind::Nord),
+@@ -144,6 +148,7 @@
+     pub fn theme(self) -> Theme {
+         match self {
+             ThemeKind::TokyoNight => TOKYO_NIGHT,
++            ThemeKind::KaelTmux => KAEL_TMUX,
+             ThemeKind::CatppuccinMocha => CATPPUCCIN_MOCHA,
+             ThemeKind::Dracula => DRACULA,
+             ThemeKind::Nord => NORD,
+@@ -163,6 +168,22 @@
+     Color::Rgb(r, g, b)
+ }
+ 
++/// Match the Kael tmux status line and the Tabby pane background.
++const KAEL_TMUX: Theme = Theme {
++    bg: rgb(0x17, 0x17, 0x17),
++    surface: rgb(0x17, 0x1b, 0x16),
++    sel: rgb(0x29, 0x33, 0x22),
++    sel_dim: rgb(0x20, 0x27, 0x1d),
++    fg: rgb(0xdc, 0xe5, 0xd3),
++    muted: rgb(0x92, 0x9e, 0x85),
++    accent: rgb(0xb1, 0xe9, 0x69),
++    purple: rgb(0xc1, 0xb0, 0xcc),
++    green: rgb(0xa5, 0xbb, 0x8b),
++    amber: rgb(0xd7, 0xc1, 0x83),
++    red: rgb(0xe6, 0xa0, 0x91),
++    teal: rgb(0xa9, 0xc7, 0xb5),
++};
++
+ pub const TOKYO_NIGHT: Theme = Theme {
+     bg: rgb(26, 27, 38),
+     surface: rgb(22, 22, 30),
+diff --git a/tests/config.rs b/tests/config.rs
+--- a/tests/config.rs
++++ b/tests/config.rs
+@@ -21,7 +21,7 @@
+         f,
+         r#"{{
+           "data_dir": "{}",
+-          "theme": "dracula",
++          "theme": "kael-tmux",
+           "keybindings": {{ "quit": ["Q"], "search": ["ctrl+f"] }}
+         }}"#,
+         data_dir.display()
+@@ -32,6 +32,7 @@
+     unsafe { std::env::set_var("TUDO_CONFIG", &cfg_path) };
+ 
+     let loaded = config::load_config().unwrap().expect("config present");
++    assert_eq!(loaded.theme, tudo::theme::ThemeKind::KaelTmux);
+     assert_eq!(
+         loaded.keybindings.get("quit").unwrap(),
+         &vec!["Q".to_string()]
+@@ -69,7 +70,7 @@
+     let refreshed = config::load_config().unwrap().expect("config present");
+     unsafe { std::env::remove_var("TUDO_CONFIG") };
+ 
+-    assert_eq!(refreshed.theme, tudo::theme::ThemeKind::Dracula);
++    assert_eq!(refreshed.theme, tudo::theme::ThemeKind::KaelTmux);
+     assert!(
+         refreshed.completed_to_bottom,
+         "the toggled preference should persist to disk"
+diff --git a/tests/storage.rs b/tests/storage.rs
+--- a/tests/storage.rs
++++ b/tests/storage.rs
+@@ -141,11 +141,12 @@
+     );
+     assert_eq!(ThemeKind::from_key("none"), Some(ThemeKind::Terminal));
+     assert_eq!(ThemeKind::from_key("terminal"), Some(ThemeKind::Terminal));
++    assert_eq!(ThemeKind::from_key("kael-tmux"), Some(ThemeKind::KaelTmux));
+     assert_eq!(ThemeKind::from_key("nonsense"), None);
+ 
+     // next() wraps through every theme.
+     let n = ThemeKind::all().len();
+-    assert_eq!(n, 12);
++    assert_eq!(n, 13);
+     let mut k = ThemeKind::default();
+     let mut seen = vec![k];
+     for _ in 0..n {

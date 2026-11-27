@@ -1,0 +1,405 @@
+diff --git a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -29,6 +29,7 @@
+ ratatui = "0.30.2"
+ serde = { version = "1.0.228", features = ["derive"] }
+ serde_json = "1.0.150"
++unicode-segmentation = "1.13.3"
+ uuid = { version = "1.23.4", features = ["v4", "serde"] }
+ 
+ [dev-dependencies]
+diff --git a/Cargo.lock b/Cargo.lock
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1576,6 +1576,7 @@
+  "serde",
+  "serde_json",
+  "tempfile",
++ "unicode-segmentation",
+  "uuid",
+ ]
+ 
+diff --git a/src/app.rs b/src/app.rs
+--- a/src/app.rs
++++ b/src/app.rs
+@@ -196,7 +196,7 @@
+         }
+     }
+ 
+-    fn byte_at(&self, char_idx: usize) -> usize {
++    pub(crate) fn byte_at(&self, char_idx: usize) -> usize {
+         self.buffer
+             .char_indices()
+             .nth(char_idx)
+diff --git a/src/ui.rs b/src/ui.rs
+--- a/src/ui.rs
++++ b/src/ui.rs
+@@ -5,6 +5,7 @@
+ 
+ use chrono::{Local, NaiveDate};
+ use ratatui::Frame;
++use ratatui::buffer::CellWidth;
+ use ratatui::layout::{Alignment, Constraint, Layout, Margin, Rect};
+ use ratatui::style::{Modifier, Style};
+ use ratatui::text::{Line, Span, Text};
+@@ -12,8 +13,9 @@
+     Block, BorderType, Clear, List, ListItem, ListState, Padding, Paragraph, Scrollbar,
+     ScrollbarOrientation, ScrollbarState, Wrap,
+ };
++use unicode_segmentation::UnicodeSegmentation;
+ 
+-use crate::app::{App, Focus, InputField, Mode, NoteView, NotesFocus, Tab, View};
++use crate::app::{App, Focus, InputField, InputState, Mode, NoteView, NotesFocus, Tab, View};
+ use crate::keybind::Action;
+ use crate::model::{Note, NoteSort, QuickAddSpan, Sort, Task, quick_add_spans};
+ use crate::theme;
+@@ -1703,55 +1705,17 @@
+     let inner = block.inner(area);
+     f.render_widget(block, area);
+ 
+-    // The quick-add task input and the new-note input highlight their markers
+-    // live; every other field is plain text. Highlighting only recolors
+-    // characters, so the cursor math below (counting characters) stays correct.
+-    if input.field == InputField::NewTask {
+-        f.render_widget(
+-            Paragraph::new(highlight_quick_add(&input.buffer)).wrap(Wrap { trim: false }),
+-            inner,
+-        );
+-    } else if input.field == InputField::NewNote {
+-        f.render_widget(
+-            Paragraph::new(highlight_note_title(&input.buffer)).wrap(Wrap { trim: false }),
+-            inner,
+-        );
+-    } else {
+-        f.render_widget(
+-            Paragraph::new(input.buffer.as_str())
+-                .style(Style::default().fg(theme::fg()))
+-                .wrap(Wrap { trim: false }),
+-            inner,
+-        );
+-    }
+-
+-    // Place the real terminal cursor.
+-    if input.multiline {
+-        let mut x = inner.x;
+-        let mut y = inner.y;
+-        for ch in input.buffer.chars().take(input.cursor) {
+-            if ch == '\n' {
+-                y += 1;
+-                x = inner.x;
+-            } else {
+-                x += 1;
+-                if x >= inner.x + inner.width {
+-                    x = inner.x;
+-                    y += 1;
+-                }
+-            }
+-        }
+-        f.set_cursor_position((x.min(inner.x + inner.width.saturating_sub(1)), y));
+-    } else {
+-        let x = inner.x + input.cursor as u16;
+-        f.set_cursor_position((x.min(inner.x + inner.width.saturating_sub(1)), inner.y));
+-    }
++    render_editor_text(f, inner, input, |line| match input.field {
++        InputField::NewTask => highlight_quick_add(line),
++        InputField::NewNote => highlight_note_title(line),
++        _ => Line::default(),
++    });
+ }
+ 
+ /// Full-screen editor for a note body: fills the whole body region (between the
+ /// header and footer), titled with the note, with a save/cancel hint at the
+ /// bottom. Drawn as an overlay over the note panes.
+-fn render_note_body_editor(f: &mut Frame, app: &App, input: &crate::app::InputState) {
++fn render_note_body_editor(f: &mut Frame, app: &App, input: &InputState) {
+     let screen = f.area();
+     let body = Rect {
+         x: screen.x,
+@@ -1772,37 +1736,7 @@
+     // Reserve the last inner row for the key hint; text fills the rest.
+     let [text_area, hint_area] =
+         Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(block_inner);
+-    let width = text_area.width.max(1);
+-    let height = text_area.height.max(1);
+-
+-    // Cursor's (row, col) using a hard char-wrap at the pane width — the same
+-    // model drives both the on-screen cursor and the vertical scroll, so they
+-    // stay in lockstep.
+-    let (mut crow, mut ccol) = (0u16, 0u16);
+-    for ch in input.buffer.chars().take(input.cursor) {
+-        if ch == '\n' {
+-            crow += 1;
+-            ccol = 0;
+-        } else {
+-            ccol += 1;
+-            if ccol >= width {
+-                ccol = 0;
+-                crow += 1;
+-            }
+-        }
+-    }
+-    // Scroll so the cursor row stays on screen.
+-    let scroll_y = crow.saturating_sub(height - 1);
+-
+-    // `split('\n')` (not `lines()`) so a trailing newline shows as a blank last
+-    // line and the cursor can sit on it.
+-    let body_lines: Vec<Line> = input.buffer.split('\n').map(markdown_line).collect();
+-    f.render_widget(
+-        Paragraph::new(Text::from(body_lines))
+-            .wrap(Wrap { trim: false })
+-            .scroll((scroll_y, 0)),
+-        text_area,
+-    );
++    render_editor_text(f, text_area, input, markdown_line);
+     f.render_widget(
+         Paragraph::new(Line::from(Span::styled(
+             "Enter = newline  ·  Tab = read view  ·  Esc or Ctrl+S = save & close",
+@@ -1810,10 +1744,138 @@
+         ))),
+         hint_area,
+     );
++}
++
++struct EditorGlyph<'a> {
++    row: usize,
++    column: usize,
++    width: usize,
++    symbol: &'a str,
++    style: Style,
++}
++
++/// Lay out the glyphs and insertion point together in terminal cells.
++/// Multi-line fields wrap at glyph boundaries; single-line fields scroll.
++fn render_editor_text(
++    f: &mut Frame,
++    area: Rect,
++    input: &InputState,
++    style_line: impl Fn(&str) -> Line<'static>,
++) {
++    if area.is_empty() {
++        return;
++    }
++    let width = usize::from(area.width);
++    let height = if input.multiline {
++        usize::from(area.height)
++    } else {
++        1
++    };
++    let cursor_byte = input.byte_at(input.cursor);
++    let (mut cursor_row, mut cursor_col) = (0, 0);
++    let mut cursor_line_width = 0;
++    let mut glyphs = Vec::new();
++    let (mut line_byte, mut row) = (0, 0);
++
++    for source in input.buffer.split('\n') {
++        let mut column = 0;
++        if line_byte <= cursor_byte {
++            (cursor_row, cursor_col) = (row, column);
++        }
++
++        // Highlighting spans supply only styles. Segment the original line so
++        // a combining mark at a style boundary stays with its base character.
++        let mut spans = style_line(source).spans.into_iter();
++        let mut span_end = 0;
++        let mut style = Style::default();
++        for (offset, symbol) in source.grapheme_indices(true) {
++            while offset >= span_end {
++                let Some(span) = spans.next() else {
++                    span_end = source.len();
++                    break;
++                };
++                span_end += span.content.len();
++                style = span.style;
++            }
++
++            if symbol.contains(char::is_control) {
++                continue;
++            }
++            let cells = usize::from(symbol.cell_width());
++            if cells == 0 || cells > width {
++                continue;
++            }
++            if input.multiline && column + cells > width {
++                row += 1;
++                column = 0;
++            }
++
++            let byte = line_byte + offset;
++            if cursor_byte >= byte {
++                cursor_row = row;
++                cursor_col = if cursor_byte >= byte + symbol.len() {
++                    column + cells
++                } else {
++                    column
++                };
++            }
++            glyphs.push(EditorGlyph {
++                row,
++                column,
++                width: cells,
++                symbol,
++                style,
++            });
++            column += cells;
++        }
++        let line_end = line_byte + source.len();
++        if (line_byte..=line_end).contains(&cursor_byte) {
++            cursor_line_width = column;
++        }
++        line_byte = line_end + 1;
++        row += 1;
++    }
++
++    if input.multiline && cursor_col == width {
++        cursor_row += 1;
++        cursor_col = 0;
++    }
++    let first_row = cursor_row.saturating_sub(height - 1);
++    let mut first_col = if input.multiline {
++        0
++    } else {
++        let max_scroll = (cursor_line_width + 1).saturating_sub(width);
++        cursor_col.saturating_sub(width / 2).min(max_scroll)
++    };
++    // A horizontal viewport must start at a whole glyph.
++    if first_col > 0
++        && let Some(glyph) = glyphs.iter().find(|glyph| {
++            glyph.row == cursor_row
++                && glyph.column < first_col
++                && glyph.column + glyph.width > first_col
++        })
++    {
++        first_col = glyph.column + glyph.width;
++    }
+ 
++    let buffer = f.buffer_mut();
++    for glyph in glyphs {
++        if (first_row..first_row + height).contains(&glyph.row)
++            && glyph.column >= first_col
++            && glyph.column + glyph.width <= first_col + width
++        {
++            buffer.set_stringn(
++                area.x + (glyph.column - first_col) as u16,
++                area.y + (glyph.row - first_row) as u16,
++                glyph.symbol,
++                glyph.width,
++                glyph.style,
++            );
++        }
++    }
+     f.set_cursor_position((
+-        (text_area.x + ccol).min(text_area.x + width - 1),
+-        text_area.y + (crow - scroll_y),
++        area.x + (cursor_col - first_col) as u16,
++        area.y + (cursor_row - first_row) as u16,
+     ));
+ }
+ 
+diff --git a/tests/render.rs b/tests/render.rs
+--- a/tests/render.rs
++++ b/tests/render.rs
+@@ -5,7 +5,7 @@
+ use ratatui::buffer::Buffer;
+ use ratatui::crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+ use ratatui::style::Modifier;
+-use tudo::app::{App, Mode, Tab};
++use tudo::app::{App, InputField, InputState, Mode, Tab};
+ use tudo::keybind::{Keymap, Overrides};
+ use tudo::model::Priority;
+ use tudo::{event, theme, ui};
+@@ -99,6 +99,94 @@
+ }
+ 
+ #[test]
++fn title_caret_tracks_display_cells_and_scrolls_with_the_text() {
++    let dir = tempfile::tempdir().unwrap();
++    let mut app = App::new(Some(dir.path().to_path_buf())).unwrap();
++    app.add_list("Work".into());
++    app.start_add_task();
++    let title = "中e\u{301}👩\u{200d}💻X";
++    let Mode::Input(input) = &mut app.mode else {
++        panic!("expected task input")
++    };
++    input.buffer = title.to_owned();
++    input.end();
++    input.left();
++
++    let mut terminal = Terminal::new(TestBackend::new(40, 24)).unwrap();
++    terminal.draw(|f| ui::render(f, &mut app)).unwrap();
++    terminal.backend_mut().assert_cursor_position((13, 11));
++    assert_eq!(terminal.backend().buffer()[(13, 11)].symbol(), "X");
++
++    let Mode::Input(input) = &mut app.mode else {
++        unreachable!()
++    };
++    input.buffer = format!("中{}尾", "a".repeat(20));
++    input.end();
++    terminal.draw(|f| ui::render(f, &mut app)).unwrap();
++    terminal.backend_mut().assert_cursor_position((30, 11));
++    assert_eq!(terminal.backend().buffer()[(8, 11)].symbol(), "a");
++    assert_eq!(terminal.backend().buffer()[(28, 11)].symbol(), "尾");
++    assert_eq!(terminal.backend().buffer()[(30, 11)].symbol(), " ");
++
++    let Mode::Input(input) = &mut app.mode else {
++        unreachable!()
++    };
++    input.home();
++    terminal.draw(|f| ui::render(f, &mut app)).unwrap();
++    terminal.backend_mut().assert_cursor_position((8, 11));
++    assert_eq!(terminal.backend().buffer()[(8, 11)].symbol(), "中");
++
++    let Mode::Input(input) = &mut app.mode else {
++        unreachable!()
++    };
++    input.buffer = format!("{}中文{}", "a".repeat(30), "z".repeat(30));
++    input.cursor = 30;
++    terminal.draw(|f| ui::render(f, &mut app)).unwrap();
++    terminal.backend_mut().assert_cursor_position((20, 11));
++    assert_eq!(terminal.backend().buffer()[(20, 11)].symbol(), "中");
++    assert_eq!(terminal.backend().buffer()[(22, 11)].symbol(), "文");
++}
++
++#[test]
++fn multiline_caret_tracks_wrapped_text_and_scrolls_to_empty_lines() {
++    let dir = tempfile::tempdir().unwrap();
++    let mut app = App::new(Some(dir.path().to_path_buf())).unwrap();
++    for (field, width, height, x, y) in [
++        (InputField::Notes, 24, 8, 8, 8),
++        (InputField::NoteBody, 36, 19, 2, 2),
++    ] {
++        let prefix = "a".repeat(width - 1);
++        let buffer = format!("{prefix}中文X{}", "\n".repeat(height));
++        app.mode = Mode::Input(InputState {
++            field,
++            prompt: "Notes".into(),
++            buffer,
++            cursor: prefix.len() + 2,
++            multiline: true,
++            return_detail: false,
++        });
++        let mut terminal = Terminal::new(TestBackend::new(40, 24)).unwrap();
++        terminal.draw(|f| ui::render(f, &mut app)).unwrap();
++        terminal.backend_mut().assert_cursor_position((x + 4, y + 1));
++        let rendered = terminal.backend().buffer();
++        assert_eq!(rendered[(x + width as u16 - 1, y)].symbol(), " ");
++        assert_eq!(rendered[(x, y + 1)].symbol(), "中");
++        assert_eq!(rendered[(x + 4, y + 1)].symbol(), "X");
++
++        let Mode::Input(input) = &mut app.mode else {
++            unreachable!()
++        };
++        input.end();
++        terminal.draw(|f| ui::render(f, &mut app)).unwrap();
++        terminal.backend_mut().assert_cursor_position((x, y + height as u16 - 1));
++        assert_eq!(
++            terminal.backend().buffer()[(x, y + height as u16 - 1)].symbol(),
++            " "
++        );
++    }
++}
++
++#[test]
+ fn tag_view_shows_tags_sidebar_and_cross_list_pane() {
+     let dir = tempfile::tempdir().unwrap();
+     let mut app = App::new(Some(dir.path().to_path_buf())).unwrap();
