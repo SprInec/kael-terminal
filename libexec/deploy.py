@@ -134,6 +134,8 @@ def config_files(headless, tabby_modules):
         "codex/ada-statusline.py": CODEX / "statusline/ada-usage-statusline/statusline.py",
         "codex/codex-tabby-preview.py": DATA / "codex-tabby-preview.py",
         "yazi/yazi.toml": XDG_CONFIG / "yazi/yazi.toml",
+        "yazi/theme.toml": XDG_CONFIG / "yazi/theme.toml",
+        "yazi/init.lua": XDG_CONFIG / "yazi/init.lua",
         "btop/btop.conf": XDG_CONFIG / "btop/btop.conf",
         "atuin/config.toml": ATUIN / "config.toml",
         "glow/glow.yml": XDG_CONFIG / "glow/glow.yml",
@@ -145,6 +147,8 @@ def config_files(headless, tabby_modules):
         mapping[f"dooit/{name}"] = XDG_CONFIG / "dooit" / name
     if not headless:
         mapping["tabby/config.yaml"] = TABBY / "config.yaml"
+        yazi_icons = "yazi/plugins/kael-yazi-icons.yazi/main.lua"
+        mapping[yazi_icons] = XDG_CONFIG / yazi_icons
         for source in sorted(PLUGINS.rglob("*")):
             relative = source.relative_to(PLUGINS)
             if source.is_file() and "node_modules" not in relative.parts:

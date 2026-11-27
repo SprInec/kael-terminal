@@ -1,0 +1,43 @@
+# Match the tmux status and pane accents.
+[mgr]
+cwd = { fg = "#b1e969" }
+border_style = { fg = "#48533e" }
+find_keyword = { fg = "#d7c183", bold = true, italic = true, underline = true }
+find_position = { fg = "#c1d88a", bg = "reset", bold = true, italic = true }
+marker_copied = { fg = "#b1e969", bg = "#b1e969" }
+marker_cut = { fg = "#e6a091", bg = "#e6a091" }
+marker_marked = { fg = "#a5bb8b", bg = "#a5bb8b" }
+marker_selected = { fg = "#d7c183", bg = "#d7c183" }
+count_copied = { fg = "#17210f", bg = "#b1e969" }
+count_cut = { fg = "#17210f", bg = "#e6a091" }
+count_selected = { fg = "#17210f", bg = "#d7c183" }
+
+[tabs]
+active = { fg = "#17210f", bg = "#b1e969", bold = true }
+inactive = { fg = "#a5bb8b", bg = "#293322" }
+
+[indicator]
+parent = { fg = "#dce5d3", bg = "#293322", reversed = false }
+current = { fg = "#dce5d3", bg = "#3b452c", reversed = false }
+preview = { fg = "#b1e969", underline = true }
+
+[mode]
+normal_main = { fg = "#17210f", bg = "#b1e969", bold = true }
+normal_alt = { fg = "#dce5d3", bg = "#293322" }
+select_main = { fg = "#17210f", bg = "#d7c183", bold = true }
+select_alt = { fg = "#e4ead7", bg = "#3b452c" }
+unset_main = { fg = "#17210f", bg = "#e6a091", bold = true }
+unset_alt = { fg = "#e4ead7", bg = "#3b452c" }
+
+[status]
+overall = { fg = "#dce5d3", bg = "#171b16" }
+sep_left = { open = "", close = "" }
+sep_right = { open = "", close = "" }
+perm_type = { fg = "#a5bb8b" }
+perm_read = { fg = "#d7c183" }
+perm_write = { fg = "#e6a091" }
+perm_exec = { fg = "#c1d88a" }
+perm_sep = { fg = "#929e85" }
+progress_label = { fg = "#dce5d3", bold = true }
+progress_normal = { fg = "#b1e969", bg = "#293322" }
+progress_error = { fg = "#17210f", bg = "#e6a091" }
