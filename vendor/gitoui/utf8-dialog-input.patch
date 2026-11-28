@@ -1,0 +1,590 @@
+--- a/src/view/dialog.rs
++++ b/src/view/dialog.rs
+@@ -2,10 +2,11 @@
+     app::AppContext,
+     config::CursorType,
+     event::{AppEvent, DialogKind, GitAction, Sender, UserEvent, UserEventWithCount},
++    text_fit,
+     view::View,
+ };
+ use ratatui::{
+-    crossterm::event::KeyEvent,
++    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
+     layout::{Alignment, Rect},
+     style::{Color, Modifier, Style},
+     text::{Line, Span},
+@@ -30,9 +31,9 @@
+     before: View<'a>,
+     kind: DialogKind,
+     input_value: String,
+-    input_cursor: usize,
++    input_cursor: usize, // UTF-8 byte offset
+     second_input_value: String,
+-    second_input_cursor: usize,
++    second_input_cursor: usize, // UTF-8 byte offset
+     dropdown_selected: usize,
+     checkboxes: Vec<bool>,
+     focused: DialogElement,
+@@ -287,15 +288,12 @@
+         }
+     }
+ 
+-    /// Returns `(line_index, col_in_line)` for `byte_offset` within `s`.
++    /// Returns the line index and display column for a UTF-8 byte offset.
+     fn cursor_line_col(s: &str, byte_offset: usize) -> (usize, usize) {
+-        let clamped = byte_offset.min(s.len());
+-        let before = &s[..clamped];
++        let before = &s[..byte_offset];
+         let line = before.chars().filter(|&c| c == '\n').count();
+-        let col = before
+-            .rfind('\n')
+-            .map_or(before.len(), |p| before.len() - p - 1);
+-        (line, col)
++        let current_line = before.rsplit('\n').next().unwrap_or_default();
++        (line, text_fit::width(current_line))
+     }
+ 
+     /// Move the cursor to the same column on the previous line (for multi-line commit dialogs).
+@@ -309,13 +307,13 @@
+         // Find the start of the previous line.
+         let lines: Vec<&str> = self.input_value.split('\n').collect();
+         let prev_line = lines[line_idx - 1];
+-        let target_col = col.min(prev_line.len());
++        let target_offset = text_fit::take_width(prev_line, col).len();
+         // Byte offset of the start of the previous line.
+         let prev_line_start: usize = lines[..line_idx - 1]
+             .iter()
+             .map(|l| l.len() + 1) // +1 for '\n'
+             .sum();
+-        self.input_cursor = prev_line_start + target_col;
++        self.input_cursor = prev_line_start + target_offset;
+     }
+ 
+     /// Move the cursor to the same column on the next line (for multi-line commit dialogs).
+@@ -328,234 +326,60 @@
+             return;
+         }
+         let next_line = lines[line_idx + 1];
+-        let target_col = col.min(next_line.len());
++        let target_offset = text_fit::take_width(next_line, col).len();
+         let next_line_start: usize = lines[..line_idx + 1].iter().map(|l| l.len() + 1).sum();
+-        self.input_cursor = next_line_start + target_col;
++        self.input_cursor = next_line_start + target_offset;
+     }
+ 
+     pub fn handle_event(&mut self, event_with_count: UserEventWithCount, key: KeyEvent) {
+-        if matches!(self.focused, DialogElement::Input) {
+-            use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+-
+-            // Multi-line shortcuts for commit/amend dialogs only.
+-            if matches!(
++        if self.focused == DialogElement::Input
++            && matches!(
+                 self.kind,
+                 DialogKind::CommitWithMessage | DialogKind::AmendMessage { .. }
+-            ) {
+-                // Ctrl+Enter OR Alt+Enter → insert newline into message body.
+-                // Alt+Enter is the reliable cross-terminal alias (Ctrl+Enter
+-                // can be swallowed or re-encoded differently per terminal).
+-                let is_newline_key = key.code == KeyCode::Enter
+-                    && (key.modifiers.contains(KeyModifiers::CONTROL)
+-                        || key.modifiers.contains(KeyModifiers::ALT));
+-                if is_newline_key {
+-                    self.insert_body_newline();
+-                    return;
+-                }
+-                if key.code == KeyCode::Up {
+-                    self.move_cursor_up();
+-                    return;
+-                }
+-                if key.code == KeyCode::Down {
+-                    if !self.input_value.contains('\n') {
+-                        // No body yet, arrow down moves focus to expand button.
+-                        self.focused = DialogElement::BodyExpand;
++            )
++        {
++            // Ctrl+Enter OR Alt+Enter → insert newline into message body.
++            // Alt+Enter is the reliable cross-terminal alias (Ctrl+Enter
++            // can be swallowed or re-encoded differently per terminal).
++            let is_newline_key = key.code == KeyCode::Enter
++                && (key.modifiers.contains(KeyModifiers::CONTROL)
++                    || key.modifiers.contains(KeyModifiers::ALT));
++            if is_newline_key {
++                self.insert_body_newline();
++                return;
++            }
++            if key.code == KeyCode::Up {
++                self.move_cursor_up();
++                return;
++            }
++            if key.code == KeyCode::Down {
++                if !self.input_value.contains('\n') {
++                    // No body yet, arrow down moves focus to expand button.
++                    self.focused = DialogElement::BodyExpand;
++                } else {
++                    let (line_idx, _) =
++                        Self::cursor_line_col(&self.input_value, self.input_cursor);
++                    let total_lines = self.input_value.split('\n').count();
++                    if line_idx + 1 >= total_lines {
++                        // Already on last line, leave input and go to next element.
++                        self.focus_next();
+                     } else {
+-                        let (line_idx, _) =
+-                            Self::cursor_line_col(&self.input_value, self.input_cursor);
+-                        let total_lines = self.input_value.split('\n').count();
+-                        if line_idx + 1 >= total_lines {
+-                            // Already on last line, leave input and go to next element.
+-                            self.focus_next();
+-                        } else {
+-                            self.move_cursor_down();
+-                        }
++                        self.move_cursor_down();
+                     }
+-                    return;
+-                }
+-            }
+-
+-            match key.code {
+-                // Ctrl+H is the terminal alias for Ctrl+Backspace (ASCII ^H).
+-                // Must be checked before the generic Char(c) arm.
+-                ratatui::crossterm::event::KeyCode::Char('h')
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    let new_pos = word_left(&self.input_value, self.input_cursor);
+-                    self.input_value.drain(new_pos..self.input_cursor);
+-                    self.input_cursor = new_pos;
+-                    return;
+-                }
+-                // Ctrl+W: Unix word-delete-left alias (same as Ctrl+Backspace).
+-                ratatui::crossterm::event::KeyCode::Char('w')
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    let new_pos = word_left(&self.input_value, self.input_cursor);
+-                    self.input_value.drain(new_pos..self.input_cursor);
+-                    self.input_cursor = new_pos;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Char(c) => {
+-                    self.input_value.insert(self.input_cursor, c);
+-                    self.input_cursor += 1;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Backspace
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    let new_pos = word_left(&self.input_value, self.input_cursor);
+-                    self.input_value.drain(new_pos..self.input_cursor);
+-                    self.input_cursor = new_pos;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Backspace => {
+-                    if self.input_cursor > 0 {
+-                        self.input_cursor -= 1;
+-                        self.input_value.remove(self.input_cursor);
+-                    }
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Delete
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    let new_pos = word_right(&self.input_value, self.input_cursor);
+-                    self.input_value.drain(self.input_cursor..new_pos);
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Delete => {
+-                    if self.input_cursor < self.input_value.len() {
+-                        self.input_value.remove(self.input_cursor);
+-                    }
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Left
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    self.input_cursor = word_left(&self.input_value, self.input_cursor);
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Left => {
+-                    if self.input_cursor > 0 {
+-                        self.input_cursor -= 1;
+-                    }
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Right
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    self.input_cursor = word_right(&self.input_value, self.input_cursor);
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Right => {
+-                    if self.input_cursor < self.input_value.len() {
+-                        self.input_cursor += 1;
+-                    }
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Home => {
+-                    self.input_cursor = 0;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::End => {
+-                    self.input_cursor = self.input_value.len();
+-                    return;
+-                }
+-                _ => {}
+-            }
+-        }
+-
+-        if matches!(self.focused, DialogElement::SecondInput) {
+-            use ratatui::crossterm::event::KeyModifiers;
+-            match key.code {
+-                ratatui::crossterm::event::KeyCode::Char('h')
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    let new_pos = word_left(&self.second_input_value, self.second_input_cursor);
+-                    self.second_input_value
+-                        .drain(new_pos..self.second_input_cursor);
+-                    self.second_input_cursor = new_pos;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Char('w')
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    let new_pos = word_left(&self.second_input_value, self.second_input_cursor);
+-                    self.second_input_value
+-                        .drain(new_pos..self.second_input_cursor);
+-                    self.second_input_cursor = new_pos;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Char(c) => {
+-                    self.second_input_value.insert(self.second_input_cursor, c);
+-                    self.second_input_cursor += 1;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Backspace
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    let new_pos = word_left(&self.second_input_value, self.second_input_cursor);
+-                    self.second_input_value
+-                        .drain(new_pos..self.second_input_cursor);
+-                    self.second_input_cursor = new_pos;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Backspace => {
+-                    if self.second_input_cursor > 0 {
+-                        self.second_input_cursor -= 1;
+-                        self.second_input_value.remove(self.second_input_cursor);
+-                    }
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Delete
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    let new_pos = word_right(&self.second_input_value, self.second_input_cursor);
+-                    self.second_input_value
+-                        .drain(self.second_input_cursor..new_pos);
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Delete => {
+-                    if self.second_input_cursor < self.second_input_value.len() {
+-                        self.second_input_value.remove(self.second_input_cursor);
+-                    }
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Left
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    self.second_input_cursor =
+-                        word_left(&self.second_input_value, self.second_input_cursor);
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Left => {
+-                    if self.second_input_cursor > 0 {
+-                        self.second_input_cursor -= 1;
+-                    }
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Right
+-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+-                {
+-                    self.second_input_cursor =
+-                        word_right(&self.second_input_value, self.second_input_cursor);
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Right => {
+-                    if self.second_input_cursor < self.second_input_value.len() {
+-                        self.second_input_cursor += 1;
+-                    }
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::Home => {
+-                    self.second_input_cursor = 0;
+-                    return;
+-                }
+-                ratatui::crossterm::event::KeyCode::End => {
+-                    self.second_input_cursor = self.second_input_value.len();
+-                    return;
+-                }
+-                _ => {}
+-            }
++                }
++                return;
++            }
++        }
++
++        let handled_input = match self.focused {
++            DialogElement::Input => edit_input(&mut self.input_value, &mut self.input_cursor, key),
++            DialogElement::SecondInput => {
++                edit_input(&mut self.second_input_value, &mut self.second_input_cursor, key)
++            }
++            _ => false,
++        };
++        if handled_input {
++            return;
+         }
+ 
+         let event = event_with_count.event;
+@@ -605,42 +429,32 @@
+                 }
+                 _ => self.focus_prev(),
+             },
+-            UserEvent::NavigateLeft => {
+-                if matches!(self.focused, DialogElement::Input) {
+-                    if self.input_cursor > 0 {
+-                        self.input_cursor -= 1;
+-                    }
+-                } else if matches!(self.focused, DialogElement::SecondInput) {
+-                    if self.second_input_cursor > 0 {
+-                        self.second_input_cursor -= 1;
+-                    }
+-                } else {
+-                    match self.focused {
+-                        DialogElement::Validate => self.focused = DialogElement::Cancel,
+-                        DialogElement::Cancel => self.focused = DialogElement::Validate,
+-                        DialogElement::Checkbox(i) => self.toggle_checkbox_at(i),
+-                        _ => self.focus_prev(),
+-                    }
+-                }
+-            }
+-            UserEvent::NavigateRight => {
+-                if matches!(self.focused, DialogElement::Input) {
+-                    if self.input_cursor < self.input_value.len() {
+-                        self.input_cursor += 1;
+-                    }
+-                } else if matches!(self.focused, DialogElement::SecondInput) {
+-                    if self.second_input_cursor < self.second_input_value.len() {
+-                        self.second_input_cursor += 1;
+-                    }
+-                } else {
+-                    match self.focused {
+-                        DialogElement::Validate => self.focused = DialogElement::Cancel,
+-                        DialogElement::Cancel => self.focused = DialogElement::Validate,
+-                        DialogElement::Checkbox(i) => self.toggle_checkbox_at(i),
+-                        _ => self.focus_next(),
+-                    }
+-                }
+-            }
++            UserEvent::NavigateLeft => match self.focused {
++                DialogElement::Input => {
++                    self.input_cursor = prev_char_boundary(&self.input_value, self.input_cursor);
++                }
++                DialogElement::SecondInput => {
++                    self.second_input_cursor =
++                        prev_char_boundary(&self.second_input_value, self.second_input_cursor);
++                }
++                DialogElement::Validate => self.focused = DialogElement::Cancel,
++                DialogElement::Cancel => self.focused = DialogElement::Validate,
++                DialogElement::Checkbox(i) => self.toggle_checkbox_at(i),
++                _ => self.focus_prev(),
++            },
++            UserEvent::NavigateRight => match self.focused {
++                DialogElement::Input => {
++                    self.input_cursor = next_char_boundary(&self.input_value, self.input_cursor);
++                }
++                DialogElement::SecondInput => {
++                    self.second_input_cursor =
++                        next_char_boundary(&self.second_input_value, self.second_input_cursor);
++                }
++                DialogElement::Validate => self.focused = DialogElement::Cancel,
++                DialogElement::Cancel => self.focused = DialogElement::Validate,
++                DialogElement::Checkbox(i) => self.toggle_checkbox_at(i),
++                _ => self.focus_next(),
++            },
+             UserEvent::RefList => {
+                 self.focus_next();
+             }
+@@ -961,7 +775,8 @@
+                     let cy = self.inner_area.y + input_row as u16 + row_offset;
+                     (cx, cy)
+                 } else {
+-                    let cx = self.inner_area.x + 1 + self.input_cursor as u16;
++                    let col = text_fit::width(&self.input_value[..self.input_cursor]);
++                    let cx = self.inner_area.x + 1 + col as u16;
+                     let cy = self.inner_area.y + input_row as u16;
+                     (cx, cy)
+                 };
+@@ -979,7 +794,8 @@
+ 
+         if self.is_highlighted(DialogElement::SecondInput) {
+             if let Some(second_input_row) = self.second_input_row {
+-                let cursor_x = self.inner_area.x + 1 + self.second_input_cursor as u16;
++                let col = text_fit::width(&self.second_input_value[..self.second_input_cursor]);
++                let cursor_x = self.inner_area.x + 1 + col as u16;
+                 let cursor_y = self.inner_area.y + second_input_row as u16;
+                 match &self.ctx.ui_config.common.cursor_type {
+                     CursorType::Native => {
+@@ -3044,28 +2860,68 @@
+     }
+ }
+ 
++/// Handle keys shared by both dialog inputs. The cursor stays at a UTF-8
++/// character boundary so edits can use it as a byte offset.
++fn edit_input(text: &mut String, cursor: &mut usize, key: KeyEvent) -> bool {
++    let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
++    match key.code {
++        // Ctrl+H and Ctrl+W are also used by terminals for deleting a word.
++        KeyCode::Char('h' | 'w') | KeyCode::Backspace if ctrl => {
++            let start = word_left(text, *cursor);
++            text.drain(start..*cursor);
++            *cursor = start;
++        }
++        KeyCode::Char(c) => {
++            text.insert(*cursor, c);
++            *cursor += c.len_utf8();
++        }
++        KeyCode::Backspace => {
++            let start = prev_char_boundary(text, *cursor);
++            text.drain(start..*cursor);
++            *cursor = start;
++        }
++        KeyCode::Delete if ctrl => {
++            let end = word_right(text, *cursor);
++            text.drain(*cursor..end);
++        }
++        KeyCode::Delete => {
++            let end = next_char_boundary(text, *cursor);
++            text.drain(*cursor..end);
++        }
++        KeyCode::Left if ctrl => *cursor = word_left(text, *cursor),
++        KeyCode::Left => *cursor = prev_char_boundary(text, *cursor),
++        KeyCode::Right if ctrl => *cursor = word_right(text, *cursor),
++        KeyCode::Right => *cursor = next_char_boundary(text, *cursor),
++        KeyCode::Home => *cursor = 0,
++        KeyCode::End => *cursor = text.len(),
++        _ => return false,
++    }
++    true
++}
++
++fn prev_char_boundary(s: &str, cursor: usize) -> usize {
++    s[..cursor].char_indices().next_back().map_or(0, |(i, _)| i)
++}
++
++fn next_char_boundary(s: &str, cursor: usize) -> usize {
++    s[cursor..]
++        .chars()
++        .next()
++        .map_or(cursor, |c| cursor + c.len_utf8())
++}
++
+ fn word_left(s: &str, cursor: usize) -> usize {
+-    let bytes = s.as_bytes();
+-    let mut i = cursor;
+-    while i > 0 && !bytes[i - 1].is_ascii_alphanumeric() {
+-        i -= 1;
+-    }
+-    while i > 0 && bytes[i - 1].is_ascii_alphanumeric() {
+-        i -= 1;
+-    }
+-    i
++    s[..cursor]
++        .trim_end_matches(|c: char| !c.is_alphanumeric())
++        .trim_end_matches(char::is_alphanumeric)
++        .len()
+ }
+ 
+ fn word_right(s: &str, cursor: usize) -> usize {
+-    let bytes = s.as_bytes();
+-    let mut i = cursor;
+-    while i < bytes.len() && !bytes[i].is_ascii_alphanumeric() {
+-        i += 1;
+-    }
+-    while i < bytes.len() && bytes[i].is_ascii_alphanumeric() {
+-        i += 1;
+-    }
+-    i
++    let rest = s[cursor..]
++        .trim_start_matches(|c: char| !c.is_alphanumeric())
++        .trim_start_matches(char::is_alphanumeric);
++    s.len() - rest.len()
+ }
+ 
+ fn centered_rect_exact(width: u16, height: u16, area: Rect) -> Rect {
+@@ -3216,3 +3072,58 @@
+         .map(|row| Line::from(Span::styled(format!("  {row}"), Style::default().fg(color))))
+         .collect()
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn edit_multibyte_input() {
++        let mut text = String::new();
++        let mut cursor = 0;
++        for code in [
++            KeyCode::Char('中'),
++            KeyCode::Char('文'),
++            KeyCode::Char('🙂'),
++            KeyCode::Left,
++            KeyCode::Backspace,
++            KeyCode::Char('字'),
++            KeyCode::Delete,
++        ] {
++            assert!(edit_input(
++                &mut text,
++                &mut cursor,
++                KeyEvent::new(code, KeyModifiers::NONE),
++            ));
++            assert!(text.is_char_boundary(cursor));
++        }
++        assert_eq!(text, "中字");
++        assert_eq!(cursor, text.len());
++    }
++
++    #[test]
++    fn edit_multibyte_words() {
++        let mut text = String::from("v1/中文/é");
++        let mut cursor = 0;
++        for code in [KeyCode::Right, KeyCode::Delete] {
++            assert!(edit_input(
++                &mut text,
++                &mut cursor,
++                KeyEvent::new(code, KeyModifiers::CONTROL),
++            ));
++            assert!(text.is_char_boundary(cursor));
++        }
++        assert_eq!(text, "v1/é");
++        assert_eq!(cursor, 2);
++    }
++
++    #[test]
++    fn cursor_columns_and_offsets_handle_wide_characters() {
++        assert_eq!(
++            DialogView::cursor_line_col("A中\n文Z", "A中\n文".len()),
++            (1, 2)
++        );
++        assert_eq!(text_fit::take_width("中文", 1), "");
++        assert_eq!(text_fit::take_width("中文", 2).len(), '中'.len_utf8());
++    }
++}
+--- a/src/text_fit.rs
++++ b/src/text_fit.rs
+@@ -25,7 +25,7 @@
+ }
+ 
+ /// The longest prefix of `s` that fits in `max` columns.
+-fn take_width(s: &str, max: usize) -> &str {
++pub(crate) fn take_width(s: &str, max: usize) -> &str {
+     let mut used = 0;
+     for (i, c) in s.char_indices() {
+         let w = char_width(c);

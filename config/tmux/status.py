@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Small Linux tmux status helper; standard library only, no background daemon."""
+import colorsys
 import json
 import os
 from pathlib import Path
@@ -79,6 +80,27 @@ def cpu_usage():
     temporary.write_text(json.dumps({'time': now, 'total': total, 'idle': idle, 'percent': percent}))
     os.replace(temporary, state)
     return percent
+
+
+def gpu_usage():
+    """Return the highest reported NVIDIA GPU utilization, if available."""
+    try:
+        output = subprocess.check_output(
+            ['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'],
+            text=True, encoding='utf-8', errors='replace', stderr=subprocess.DEVNULL, timeout=1,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+    percentages = []
+    for line in output.splitlines():
+        try:
+            percent = int(line)
+        except ValueError:
+            continue
+        if 0 <= percent <= 100:
+            percentages.append(percent)
+    return max(percentages, default=None)
 
 
 def memory_usage():
@@ -175,29 +197,73 @@ def pane_process_groups(pane_pid):
     return int(fields[3]), int(fields[5])
 
 
+def foreground_processes(pane_pid):
+    session, foreground = pane_process_groups(pane_pid)
+    if foreground <= 0:
+        return
+    yield foreground
+    # Shell and package runners may lead the group while the application is a child.
+    members = subprocess.check_output(
+        ['/usr/bin/ps', '-s', str(session), '-o', 'pid=,pgid='],
+        text=True, stderr=subprocess.DEVNULL, timeout=0.5,
+    )
+    for line in members.splitlines():
+        pid, group = map(int, line.split())
+        if group == foreground and pid != foreground:
+            yield pid
+
+
 def foreground_cli(pane_pid):
     try:
-        session, foreground = pane_process_groups(pane_pid)
-        if foreground <= 0:
-            return ''
-        brand = cli_at_pid(foreground)
-        if brand:
-            return brand
-
-        # A shell or package runner may lead the foreground group while the CLI is a child.
-        members = subprocess.check_output(
-            ['/usr/bin/ps', '-s', str(session), '-o', 'pid=,pgid='],
-            text=True, stderr=subprocess.DEVNULL, timeout=0.5,
-        )
-        for line in members.splitlines():
-            pid, group = map(int, line.split())
-            if group == foreground and pid != foreground:
-                brand = cli_at_pid(pid)
-                if brand:
-                    return brand
+        for pid in foreground_processes(pane_pid):
+            brand = cli_at_pid(pid)
+            if brand:
+                return brand
     except (OSError, ValueError, IndexError, subprocess.SubprocessError):
         pass
     return ''
+
+
+TRAINING_LAUNCHERS = {'torchrun', 'deepspeed'}
+TRAINING_SCRIPTS = re.compile(r'(?:train(?:[_-].+)?|.+[_-]train|fine[_-]?tune(?:[_-].+)?)\.py')
+
+
+def training_at_pid(pid):
+    proc = Path('/proc') / str(pid)
+    try:
+        argv = [os.fsdecode(arg) for arg in (proc / 'cmdline').read_bytes().rstrip(b'\0').split(b'\0')]
+        program = Path(argv[0]).name
+        args = iter(argv[1:])
+        if re.fullmatch(r'python(?:[0-9.]+)?', program):
+            for arg in args:
+                if arg == '-m':
+                    return next(args, '') in ('torch.distributed.run', 'torch.distributed.launch', 'deepspeed.launcher.runner')
+                if arg in ('-c', '-'):
+                    return False
+                if arg in ('-W', '-X'):
+                    next(args, None)
+                elif not arg.startswith('-'):
+                    entry = Path(arg)
+                    program = entry.name
+                    if TRAINING_SCRIPTS.fullmatch(program):
+                        return True
+                    if program in ('evaluate.py', 'eval.py'):
+                        return 'box_avoid' in (proc / 'cwd' / entry).resolve().parts
+                    break
+        if program in TRAINING_LAUNCHERS:
+            return True
+        if program == 'accelerate' and next(args, '') == 'launch':
+            return any(TRAINING_SCRIPTS.fullmatch(Path(arg).name) for arg in args)
+    except (OSError, ValueError, IndexError, RuntimeError):
+        pass
+    return False
+
+
+def foreground_training(pane_pid):
+    try:
+        return any(training_at_pid(pid) for pid in foreground_processes(pane_pid))
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError):
+        return False
 
 
 def adb_shell_command(pid):
@@ -233,7 +299,40 @@ def remote_terminal(pane_pid, tty, command):
         return False
 
 
-def render(path_string, columns, disk, session=''):
+def accent_palette(accent):
+    rgb = bytes.fromhex(accent)
+    backgrounds = []
+    for tint in (0.09, 0.19, 0.28):
+        background = bytes(round(19 + (channel - 19) * tint) for channel in rgb)
+        backgrounds.append('#' + background.hex())
+    linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+              for value in (channel / 255 for channel in rgb)]
+    luminance = sum(weight * value for weight, value in zip((0.2126, 0.7152, 0.0722), linear))
+    foreground = '#17210f' if luminance >= 0.22 else '#f4f4f4'
+    return ' '.join([*backgrounds, foreground])
+
+
+def right_colours(accent):
+    # Icon labels, data, path and clock, clean Git, and separators.
+    colours = ('#929e85', '#dce5d3', '#a5bb8b', '#b1e969', '#48533e')
+    if not re.fullmatch(r'[0-9a-fA-F]{6}', accent) or accent.lower() == 'b1e969':
+        return colours
+
+    def to_hls(rgb):
+        return colorsys.rgb_to_hls(*(channel / 255 for channel in bytes.fromhex(rgb)))
+
+    local_hue, _, _ = to_hls('b1e969')
+    focus_hue, _, focus_saturation = to_hls(accent)
+    rotation = focus_hue - local_hue
+    themed = []
+    for colour in colours:
+        hue, lightness, saturation = to_hls(colour[1:])
+        rgb = colorsys.hls_to_rgb((hue + rotation) % 1, lightness, saturation if focus_saturation else 0)
+        themed.append('#' + bytes(round(channel * 255) for channel in rgb).hex())
+    return tuple(themed)
+
+
+def render(path_string, columns, disk, session='', accent=''):
     path = Path(path_string).resolve()
     directory = str(path)
     home = str(Path.home())
@@ -257,11 +356,11 @@ def render(path_string, columns, disk, session=''):
     # Budget for the session, an active prefix indicator and window list.
     session_limit = 6 if columns < 70 else 12
     budget = max(0, columns - min(session_limit, width(safe(session))) - 14 - max(12, columns // 5))
-    base, muted, foreground = '#171b16', '#929e85', '#dce5d3'
-    sage, green, amber, red = '#a5bb8b', '#b1e969', '#d7c183', '#e6a091'
+    muted, foreground, path_colour, clean, divider = right_colours(accent)
+    amber, red = '#d7c183', '#e6a091'
 
     def segment(text, colour=foreground):
-        return (text, f'#[fg={colour},bg={base},nobold,noreverse]{text}#[default]')
+        return (text, f'#[fg={colour},nobold,noreverse]{text}#[default]')
 
     def resource(icon, label, value):
         colour = muted
@@ -270,22 +369,25 @@ def render(path_string, columns, disk, session=''):
             colour = red if percent >= 90 else amber if percent >= 75 else foreground
         title = icon + ' ' + (label + ' ' if columns >= 160 else '')
         return (title + value,
-                f'#[fg={muted},bg={base},nobold]{title}#[fg={colour}]{value}#[default]')
+                f'#[fg={muted},nobold]{title}#[fg={colour}]{value}#[default]')
 
     hostname = trim(safe(os.uname().nodename.split('.')[0]), 22)
     clock = time.strftime(' %m-%d   %H:%M' if columns >= 140 else ' %H:%M')
-    clock_part = segment(clock + ' ', sage)
+    clock_part = segment(clock + ' ', path_colour)
     optional = [('cpu', resource('', 'CPU', cpu)),
                 ('memory', resource('', 'MEM', memory)),
                 ('disk', resource('', 'DSK', disk_pct)),
                 ('host', segment(' ' + hostname, muted))]
+    gpu = gpu_usage()
+    if gpu is not None:
+        optional.insert(1, ('gpu', resource('󰢮', 'GPU', f'{gpu}%')))
     if columns >= 190:
-        optional.insert(3, ('load', segment(' ' + '%.2f' % os.getloadavg()[0], muted)))
+        optional.insert(-1, ('load', segment(' ' + '%.2f' % os.getloadavg()[0], muted)))
     # Retain directory/Git first; progressively remove lower-priority telemetry.
     def ending_width():
         return sum(width(part[0]) + 3 for _, part in optional) + width(clock_part[0]) + 3
 
-    for name in ('load', 'host', 'disk', 'memory', 'cpu'):
+    for name in ('load', 'host', 'disk', 'memory', 'gpu', 'cpu'):
         if ending_width() + 32 <= budget:
             break
         optional = [(key, part) for key, part in optional if key != name]
@@ -300,24 +402,30 @@ def render(path_string, columns, disk, session=''):
         branch_budget = min(28, max(8, (info_budget - 3) // 2))
         git_text = ' ' + trim(branch, max(1, branch_budget - 2 - width(state))) + state
         git_text = trim(git_text, branch_budget)
-        git_part = segment(git_text, amber if suffix else green)
+        git_part = segment(git_text, amber if suffix else clean)
         info_budget -= width(git_text) + 3
     if info_budget >= 4:
-        parts.append(segment(' ' + compact_path(directory, info_budget - 2), sage))
+        parts.append(segment(' ' + compact_path(directory, info_budget - 2), path_colour))
     if git_part:
         parts.append(git_part)
     parts.extend(part for _, part in optional)
     parts.append(clock_part)
-    separator = f'#[fg=#48533e,bg={base},nobold] │ '
+    separator = f'#[fg={divider},nobold] │ '
     result = separator.join(part[1] for part in parts)
     # Very small terminals still get a clock without stealing the window list.
     if budget < width(clock_part[0]):
-        return segment(trim(time.strftime('%H:%M'), budget), sage)[1]
+        return segment(trim(time.strftime('%H:%M'), budget), path_colour)[1]
     return result + '#[default]'
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 5 and sys.argv[1] == '--remote-terminal':
+    if len(sys.argv) == 3 and sys.argv[1] == '--accent-palette':
+        if re.fullmatch(r'[0-9a-fA-F]{6}', sys.argv[2]):
+            print(accent_palette(sys.argv[2]))
+    elif len(sys.argv) == 3 and sys.argv[1] == '--training-terminal':
+        pid = sys.argv[2]
+        print(int(pid.isascii() and pid.isdecimal() and foreground_training(int(pid))))
+    elif len(sys.argv) == 5 and sys.argv[1] == '--remote-terminal':
         pane_pid, tty, command = sys.argv[2:]
         print(int(remote_terminal(pane_pid, tty, command)))
     elif len(sys.argv) == 4 and sys.argv[1] == '--foreground-cli':
@@ -329,6 +437,6 @@ if __name__ == '__main__':
                 print(f'{pane_pid}:{command}:{brand}')
     else:
         try:
-            print(render(sys.argv[1], max(1, int(sys.argv[2] or '80')), sys.argv[3], sys.argv[4] if len(sys.argv) > 4 else ''))
+            print(render(sys.argv[1], max(1, int(sys.argv[2] or '80')), *sys.argv[3:]))
         except Exception:
             print(' status unavailable ')

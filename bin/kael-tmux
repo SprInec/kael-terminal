@@ -9,10 +9,24 @@ if [ ! -x "$tmux_bin" ]; then
     exit 1
 fi
 
+task=no
+if [ "${1-}" = task ]; then
+    task=yes
+    shift
+    set -- -- "$@"
+fi
+
+run_tmux() {
+    if [ "$task" = yes ]; then
+        exec python3 "$config/tmux/pane-task.py" "$tmux_bin" "$@"
+    fi
+    exec "$tmux_bin" "$@"
+}
+
 case "${TMUX-}" in
     */kael-borders,*|*/kael-borders-sixel,*)
         socket=${TMUX%,*,*}
-        exec "$tmux_bin" -S "$socket" "$@"
+        run_tmux -S "$socket" "$@"
         ;;
 esac
 
@@ -35,6 +49,6 @@ if [ "$#" -eq 0 ]; then
 fi
 unset TMUX TMUX_PANE
 if [ -n "$sixel" ]; then
-    exec "$tmux_bin" -T sixel -L kael-borders-sixel -f "$config/tmux/independent-borders.conf" "$@"
+    run_tmux -T sixel -L kael-borders-sixel -f "$config/tmux/independent-borders.conf" "$@"
 fi
-exec "$tmux_bin" -L kael-borders -f "$config/tmux/independent-borders.conf" "$@"
+run_tmux -L kael-borders -f "$config/tmux/independent-borders.conf" "$@"

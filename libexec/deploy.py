@@ -114,7 +114,7 @@ def nvim_config_files():
     init_vim = nvim / "init.vim"
     lazy_config = nvim / "lua/config/lazy.lua"
     extensions = ("lua/plugins/kael-statusline.lua", "lua/kael/statusline-icons.json",
-                  "lua/plugins/gitoui.lua")
+                  "lua/plugins/gitoui.lua", "lua/plugins/codex.lua")
     mapping = {}
 
     if init_lua.exists() or init_lua.is_symlink():
@@ -164,6 +164,7 @@ def config_files(headless, tabby_modules):
         "tmux/status.conf": XDG_CONFIG / "tmux/status.conf",
         "tmux/independent-borders.conf": XDG_CONFIG / "tmux/independent-borders.conf",
         "tmux/status.py": XDG_CONFIG / "tmux/status.py",
+        "tmux/pane-task.py": XDG_CONFIG / "tmux/pane-task.py",
         "starship/starship.toml": XDG_CONFIG / "starship.toml",
         "starship/git-host.py": XDG_CONFIG / "starship/git-host.py",
         "codex/config.toml": CODEX / "config.toml",

@@ -30,7 +30,8 @@ for patch in \
     sixel-node-aspect.patch \
     tabby-sixel-and-smooth-graph.patch \
     terminal-graph-antialiasing.patch \
-    compact-footer.patch
+    compact-footer.patch \
+    utf8-dialog-input.patch
 do
     patch --directory "$work/source" --strip=1 --batch --forward --fuzz=0 --input "$src/$patch"
 done

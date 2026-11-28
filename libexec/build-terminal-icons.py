@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build scalable, foreground-colored warning and fast glyphs for the prompt font."""
+"""Build scalable prompt and status glyphs for the terminal icon font."""
 
 import argparse
 from pathlib import Path
@@ -14,10 +14,13 @@ SOURCE = ROOT / "fonts/StarshipPromptIcons"
 NERD_FONT = ROOT / "fonts/SauceCodeProNF"
 WARNING = 0x26A0
 LIGHTNING = 0xF0E7
+GPU = 0xF08AE
+WARNING_SCALE = 1.12
 CENTER_X = 300
 CENTER_Y = 320
 TARGETS = {
     LIGHTNING: (700, 860),
+    GPU: (720, 480),
 }
 
 
@@ -60,9 +63,11 @@ def draw_warning_outline(font, name):
     pen.qCurveTo((268, 205), (300, 205))
     pen.closePath()
     glyph = pen.glyph()
-    glyph.coordinates.translate((-300, 0))
-    glyph.coordinates.scale((1.035, 1))
-    glyph.coordinates.translate((300, 0))
+    # Grow around the center of the base to keep its baseline and cell width.
+    base_y = 15
+    glyph.coordinates.translate((-CENTER_X, -base_y))
+    glyph.coordinates.scale((1.035 * WARNING_SCALE, WARNING_SCALE))
+    glyph.coordinates.translate((CENTER_X, base_y))
     glyph.recalcBounds(font["glyf"])
     font["glyf"][name] = glyph
     font["hmtx"][name] = (600, glyph.xMin)
@@ -88,16 +93,17 @@ def build(source, output, style):
     with TTFont(source, recalcTimestamp=False) as font, TTFont(nerd_path) as nerd:
         cmap = font.getBestCmap()
         warning = cmap[WARNING]
-        bolt = cmap.get(LIGHTNING)
-        if bolt is None:
-            bolt = "uniF0E7"
-            font.setGlyphOrder([*font.getGlyphOrder(), bolt])
-            for table in font["cmap"].tables:
-                if table.isUnicode():
-                    table.cmap[LIGHTNING] = bolt
-
         draw_warning_outline(font, warning)
-        fit_outline(nerd, nerd.getBestCmap()[LIGHTNING], font, bolt, *TARGETS[LIGHTNING])
+        nerd_cmap = nerd.getBestCmap()
+        for codepoint, size in TARGETS.items():
+            name = cmap.get(codepoint)
+            if name is None:
+                name = f"uni{codepoint:04X}" if codepoint <= 0xFFFF else f"u{codepoint:05X}"
+                font.setGlyphOrder([*font.getGlyphOrder(), name])
+                for table in font["cmap"].tables:
+                    if table.isUnicode() and (table.format == 12 or (table.format == 4 and codepoint <= 0xFFFF)):
+                        table.cmap[codepoint] = name
+            fit_outline(nerd, nerd_cmap[codepoint], font, name, *size)
 
         # A fixed-size sbix strike makes the entire font render poorly at normal
         # terminal sizes. Both symbols now use tintable outlines instead.

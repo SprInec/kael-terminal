@@ -307,7 +307,7 @@ gitoui --graph-renderer ascii -n 100
 | 编辑提交消息 | 核对已暂存的文件后，按 `w` 打开提交消息编辑器，`Ctrl+Enter` 或 `Ctrl+S` 提交 |
 | 查看帮助或返回 | `?` 查看当前按键，`Esc` 返回，`q` 退出主视图 |
 
-构建脚本校验 Gitoui 0.5.0 源码包、固定 Cargo 依赖并应用四个补丁。`sixel-node-aspect` 校正节点比例，`tabby-sixel-and-smooth-graph` 调整 Tabby 的 Sixel 与平滑连线，`terminal-graph-antialiasing` 改善绘图边缘，`compact-footer` 缩短底栏。[Gitoui 配置](config/gitoui/) · [构建脚本与补丁](vendor/gitoui/)
+构建脚本校验 Gitoui 0.5.0 源码包、固定 Cargo 依赖并应用本地补丁。`sixel-node-aspect` 校正节点比例，`tabby-sixel-and-smooth-graph` 调整 Tabby 的 Sixel 与平滑连线，`terminal-graph-antialiasing` 改善绘图边缘，`compact-footer` 缩短底栏，`utf8-dialog-input` 修复标签名和其他对话框输入的 UTF‑8 光标处理。[Gitoui 配置](config/gitoui/) · [构建脚本与补丁](vendor/gitoui/)
 
 ## Codex CLI
 

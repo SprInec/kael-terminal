@@ -307,7 +307,7 @@ The build installs to `${XDG_DATA_HOME:-$HOME/.local/share}/kael-terminal/bin/gi
 | Write a commit message | Review staged files, then press `w` to open the message editor and `Ctrl+Enter` or `Ctrl+S` to commit |
 | Get help or go back | Press `?` for active shortcuts, `Esc` to go back, and `q` to quit from the main view |
 
-The build checks the Gitoui 0.5.0 archive, uses locked Cargo dependencies, and applies four patches. `sixel-node-aspect` adjusts node proportions, `tabby-sixel-and-smooth-graph` adjusts Sixel sizing and smooth edges for Tabby, `terminal-graph-antialiasing` smooths drawing edges, and `compact-footer` shortens the footer. [Gitoui configuration](config/gitoui/) · [Build script and patches](vendor/gitoui/)
+The build checks the Gitoui 0.5.0 archive, uses locked Cargo dependencies, and applies local patches. `sixel-node-aspect` adjusts node proportions, `tabby-sixel-and-smooth-graph` adjusts Sixel sizing and smooth edges for Tabby, `terminal-graph-antialiasing` smooths drawing edges, `compact-footer` shortens the footer, and `utf8-dialog-input` fixes UTF-8 cursor handling in tag names and other dialog inputs. [Gitoui configuration](config/gitoui/) · [Build script and patches](vendor/gitoui/)
 
 ## Codex CLI
 

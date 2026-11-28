@@ -1,15 +1,13 @@
 'use strict';
 
-// Match the tmux and Yazi status themes so application content keeps its native rendering.
-const barBackground = 0x171b16;
-const sessionBackground = 0xb1e969;
-const yaziModes = new Map([[sessionBackground, ' NOR '], [0xd7c183, ' SEL '], [0xe6a091, ' UNS ']]);
-const segmentColors = new Set([...yaziModes.keys(), 0x3b452c, 0x293322]);
+const yaziBackground = 0x171b16;
+const yaziModes = new Map([[0xb1e969, ' NOR '], [0xd7c183, ' SEL '], [0xe6a091, ' UNS ']]);
+const yaziSegmentColors = new Set([...yaziModes.keys(), 0x3b452c, 0x293322]);
 const rightArrow = '';
 const leftArrow = '';
 const thinArrow = '';
 const paneEdges = new Set(['│', '┃', '└', '┗', '╰', '╵', '╹']);
-const largerIcons = new Set('');
+const largerIcons = new Set('󰢮');
 const logos = new Set(['󸂀', '󸂁']);
 const gitSymbols = new Set(['', '✓', '●', '↑', '↓']);
 
@@ -26,7 +24,7 @@ function readCells(line, cell, columns) {
     return cells;
 }
 
-function markArrows(cells) {
+function markArrows(cells, barBackground, segmentColors) {
     cells.forEach((cell, column) => {
         const { text, foreground, background } = cell;
         if (text === rightArrow || text === leftArrow) {
@@ -39,16 +37,24 @@ function markArrows(cells) {
 }
 
 function findTmuxStatus(line, cell, columns, buffer, row) {
-    if (!line.getCell(0, cell)?.isBgRGB() || cell.getBgColor() !== sessionBackground) return null;
+    if (!line.getCell(0, cell)?.isBgRGB()) return null;
     const cells = readCells(line, cell, columns);
+    const sessionBackground = cells[0].background;
     const sessionEnd = cells.findIndex(({ background }) => background !== sessionBackground);
     const boundary = cells[sessionEnd];
     if (boundary?.text !== rightArrow || boundary.foreground !== sessionBackground ||
         !cells.slice(0, sessionEnd).some(({ text }) => text === '')) return null;
 
-    markArrows(cells);
+    // The bar fills the right edge. The session, prefix and active window use other backgrounds.
+    const barBackground = cells.at(-1).background;
+    if (barBackground === undefined) return null;
+    const segmentColors = new Set();
+    for (const { background } of cells) {
+        if (background !== undefined && background !== barBackground) segmentColors.add(background);
+    }
+    markArrows(cells, barBackground, segmentColors);
     const paneCell = buffer.getLine(buffer.viewportY + row - 1)?.getCell(0, cell);
-    return { cells, alignToPane: paneEdges.has(paneCell?.getChars()) };
+    return { cells, barBackground, segmentColors, alignToPane: paneEdges.has(paneCell?.getChars()) };
 }
 
 function findYaziStatus(line, cell, columns) {
@@ -59,22 +65,22 @@ function findYaziStatus(line, cell, columns) {
     for (let column = 5; column < row.length; column++) {
         const { text, foreground, background } = row[column];
         const mode = yaziModes.get(foreground);
-        if (text !== rightArrow || !mode || !segmentColors.has(background)) continue;
+        if (text !== rightArrow || !mode || !yaziSegmentColors.has(background)) continue;
 
         const first = column - mode.length;
         const label = row.slice(first, column);
         if (label.some(cell => cell.background !== foreground) || label.map(cell => cell.text).join('') !== mode) continue;
 
         let end = first;
-        while (end < row.length && (row[end].background === barBackground || segmentColors.has(row[end].background))) {
+        while (end < row.length && (row[end].background === yaziBackground || yaziSegmentColors.has(row[end].background))) {
             cells[end] = row[end];
             end++;
         }
         column = end - 1;
     }
     if (!cells.length) return null;
-    markArrows(cells);
-    return { cells };
+    markArrows(cells, yaziBackground, yaziSegmentColors);
+    return { cells, barBackground: yaziBackground, segmentColors: yaziSegmentColors };
 }
 
 function findStatuses(terminal, first, last) {
@@ -96,7 +102,8 @@ function color(rgb) {
     return `#${rgb.toString(16).padStart(6, '0')}`;
 }
 
-function drawSegments(context, cells, { width, height, top, centerY, inset, left, scale }) {
+function drawSegments(context, { cells, barBackground, segmentColors, geometry }) {
+    const { width, height, top, centerY, inset, left, scale } = geometry;
     context.save();
     for (const [column, cell] of cells.entries()) {
         if (!cell) continue;
@@ -218,8 +225,8 @@ function withCanvasStatuses(renderer, layer, statuses, draw) {
     const drawChars = layer._drawChars;
     layer._drawBackground = function (first, last) {
         drawBackground.call(this, first, last);
-        for (const [row, { cells, geometry }] of statuses) {
-            if (first <= row && row <= last) drawSegments(context, cells, geometry);
+        for (const [row, status] of statuses) {
+            if (first <= row && row <= last) drawSegments(context, status);
         }
     };
     layer._drawChars = function (cell, column, line) {
